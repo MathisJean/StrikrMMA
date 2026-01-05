@@ -1,0 +1,183 @@
+<head>
+    <link rel="stylesheet" href="/css/settings.css">
+    <script type="module" defer src="/js/settings.js"></script>
+</head>
+
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const timeline_container = document.getElementById("timeline-container");
+    const video_container = document.getElementById("video-container");
+
+    Sortable.create(timeline_container, {
+      animation: 150
+    });
+
+    Sortable.create(video_container, {
+      animation: 150
+    });
+  });
+</script>
+
+<div class="settings-wrapper">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <h2>Settings</h2>
+        <ul>
+            <li class="tab active" data-tab="profile-tab">Profile</li>
+            <li class="tab" data-tab="accessibility-tab">Accessibility</li>
+            <li class="tab" data-tab="notifications-tab">Notifications</li>
+            <li class="tab" data-tab="privacy-tab">Privacy</li>
+        </ul>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="content">
+
+        <!-- Profile Tab -->
+        <section id="profile-tab" class="tab-content active">
+            <h1>Profile</h1>
+
+            <!-- Basic Info -->
+            <div class="section">
+                <div class="user-info">
+                    <label>
+                        Nickname
+                        <input type="text" name="nickname" class="profile-input" value="<%= profile.nickname %>">
+                    </label>
+                    
+                    <label>
+                        Weight Class
+                        <input type="text" name="weight_class" class="profile-input" value="<%= profile.weight_class %>">
+                    </label>
+                    
+                    <!-- Badges -->
+                    <label>Credentials
+                        <div class="badge-container">
+                            <input type="text" name="badge1" class="profile-input badge" maxlength="30" value="<%= profile.badge1 %>">
+                            <span class="counter">0 / 30</span>
+                        </div>
+
+                        <div class="badge-container">
+                            <input type="text" name="badge2" class="profile-input badge" maxlength="30" value="<%= profile.badge2 %>">
+                            <span class="counter">0 / 30</span>
+                        </div>
+
+                        <div class="badge-container">
+                            <input type="text" name="badge3" class="profile-input badge" maxlength="30" value="<%= profile.badge3 %>">
+                            <span class="counter">0 / 30</span>
+                        </div>
+                    </label>
+                    <label>
+                        Instagram
+                        <input type="url" name="instagram_url" class="profile-input" placeholder="https://instagram.com/username" value="<%= profile.instagram_url %>">
+                    </label>
+
+                    <!--
+                    <label>Wins<input type="number" name="wins" class="profile-input" value="<%= profile.wins %>" min="0"></label>
+                    <label>Losses<input type="number" name="losses" class="profile-input" value="<%= profile.losses %>" min="0"></label>
+                    <label>KOs<input type="number" name="ko" class="profile-input" value="<%= profile.ko %>" min="0"></label>
+                    <label>Subs<input type="number" name="submissions" class="profile-input" value="<%= profile.submissions %>" min="0"></label>
+                    -->
+                </div>
+
+                <!-- Profile Picture -->
+                <label class="img_drop_area" style="background-image: url('<%= profile.profile_pic_url %>');">
+                    <input type="file" name="profile_pic_url" class="input_file profile-input" accept="image/*" hidden>
+
+                    <img id="img_view" src="/svg/image.svg">
+                </label>
+            </div>
+
+
+            <!-- Video Highlights -->
+            <div class="section" id="video-section">
+                <!--
+                <div id="video-container">
+                    <% for(let i = 0; i < highlights.length; i++){ %>
+                        <div data-id="<%= highlights[i].id %>" class="video-upload" data-src="<%= highlights[i].video_url %>">
+                            <label class="vid_drop_area">
+                                <input type="file" name="video_url" class="input_file highlight-input" accept="video/*" hidden data-src="<%= highlights[i].video_url %>">
+                                <img id="vid_view" src="/svg/video.svg">
+                            </label>
+                            <button type="button" class="remove-btn"><img src="/svg/delete.svg"></button>
+                        </div>
+                    <% } %>
+                
+                    <script>
+                        document.querySelectorAll('.video-upload .remove-btn').forEach(btn => {
+                            btn.addEventListener('click', (e) => {
+                                const div = e.target.closest('.video-upload');
+                                if(div) div.remove();
+                            });
+                        });
+                    </script>
+                </div>
+                -->
+
+                <div class="slideshow">
+                    <% for (let i = 0; i < highlights.length; i++) { %>
+                        <div data-id="<%= highlights[i].id %>" class="video-upload" data-src="<%= highlights[i].video_url %>">
+                            <label class="vid_drop_area">
+                                <input type="file" name="video_url" class="input_file highlight-input" accept="video/*" hidden data-src="<%= highlights[i].video_url %>">
+                                <img id="vid_view" src="/svg/video.svg">
+                            </label>
+                            <button type="button" class="remove-btn"><img src="/svg/delete.svg"></button>
+                        </div>
+                    <% } %>
+                </div>
+
+                <p class="prompt" style="display: none;">It looks empty here...</p>
+
+                <button type="button" id="add-video-btn" class="gradient-btn">Add Highlight</button>
+            </div>
+
+            <!-- Timeline -->
+            <div class="section" id="timeline-section">
+                <div id="timeline-container">
+                    <% for(let i = 0; i < events.length; i++){ %>
+                        <div data-id="<%= events[i].id %>" class="timeline-item">
+                            <label>Title<input type="text" name="title" class="event-input" value="<%= events[i].title %>"></label>
+                            <label>Description<input type="text" name="description" class="event-input" value="<%= events[i].description %>"></label>
+
+                            <label class="img_drop_area" style="background-image: url('<%= events[i].img_url %>'); border-radius: 1rem;">
+                                <input type="file" name="img_url" class="input_file event-input" accept="image/*" hidden>
+
+                                <img id="img_view" src="/svg/image.svg">
+                            </label>
+
+                            <button type="button" class="remove-btn"><img src="/svg/delete.svg"></button>
+                        </div>
+                    <% } %>
+
+                    <script>
+                        document.querySelectorAll('.timeline-item .remove-btn').forEach(btn => {
+                            btn.addEventListener('click', (e) => {
+                                const div = e.target.closest('.timeline-item');
+                                if(div) div.remove();
+                            });
+                        });
+                    </script>
+                </div>
+
+                <button type="button" id="add-timeline-btn" class="gradient-btn">Add Event</button>
+            </div>
+            
+            <button type="button" id="save-btn" class="gradient-btn">Save</button>
+        </section>
+
+        <!-- Other Tabs -->
+        <section id="accessibility-tab" class="tab-content">
+            <h1>Accessibility</h1>
+        </section>
+
+        <section id="notifications-tab" class="tab-content">
+            <h1>Notifications</h1>
+        </section>
+
+        <section id="privacy-tab" class="tab-content">
+            <h1>Privacy</h1>
+        </section>
+
+    </main>
+</div>

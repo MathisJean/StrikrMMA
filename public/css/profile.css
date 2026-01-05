@@ -1,0 +1,430 @@
+
+html, body{
+    display: flex;
+    flex-direction: column;
+
+    height: 100%;
+    margin: 0;
+    padding: 0;
+
+    overflow: hidden;
+}
+
+.page{
+    display: flex;
+    flex: 1;
+    min-height: 0;
+}
+
+/*-- Hero Section --*/
+.hero{
+    width: 30%;
+    height: 100%;
+
+    box-shadow: 4px 2px 10px rgba(0, 0, 0, 0.3);
+
+    z-index: 1;
+}
+
+.profile-img{
+    display: flex;
+    aspect-ratio: 1;
+
+    flex-direction: column;
+    align-items: baseline;
+
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover;
+}
+
+#setting_btn,
+#logout_btn{
+    display: flex;
+    
+    margin: 0.5em;
+    
+    height: min-content;
+    aspect-ratio: 1;
+}
+
+#setting_btn{
+    transition: rotate 200ms ease;
+}
+
+#logout_btn #arrow{
+    transform-origin: left;
+
+    transition: transform 200ms ease;
+}
+
+#setting_btn:hover{
+    rotate: 60deg;
+}
+
+#logout_btn:hover #arrow{
+    transform: translateX(10%);
+}
+
+.hero-content{
+    position: absolute;
+
+    left: 0%;
+    bottom: 0;
+
+    display: flex;
+
+    justify-content: center;
+    align-items: flex-end;
+
+    width: inherit;
+    height: 50%;
+}
+
+.content-card{
+    display: flex;
+    flex-direction: column;
+
+    justify-content: space-between;
+
+    padding: 2em;
+    
+    height:  calc(100% - 4em);
+    width: 100%;
+    
+    border-radius: 20px 20px 0 0;
+    
+    color: var(--text);
+    background-color: var(--bg);
+}
+
+.verified-badge{
+    display: inline-flex;
+    align-items: center;
+    
+    color: white;
+    background-color: var(--blue);
+
+    width: min-content;
+    
+    font-size: 1em;
+    
+    gap: 0.25em;
+    border-radius: 1000px;
+    
+    padding: 0.25em 0.75em;
+}
+
+.verified-badge.hidden {
+    visibility: hidden;
+}
+
+#hero-title{
+    margin: 0%;
+}
+
+#hero-subtitle{
+    font-style: italic;
+    margin: 0%;
+}
+
+.stats-block{
+    display: flex;
+
+    gap: 1em;
+}
+
+.stat-pill{
+    display: flex;
+    flex-direction: column;
+
+    color: inherit;
+    background: var(--card-bg);
+    
+    gap: 0.25em;
+    padding: 1em;
+    margin: 0%;
+
+    aspect-ratio: 8/9;
+}
+
+.stat-number{
+    font-weight: 700;
+    font-size: 1.2em;
+}
+
+.stat-label{
+    font-weight: 500;
+    font-size: 1.2em;
+}
+
+.credentials-badges{
+    display: flex;
+    flex-wrap: nowrap;
+
+    gap: 1em;
+}
+
+.badge{
+    color: inherit;
+    background: var(--card-bg);
+
+    padding: 1em;
+    margin: 0%;
+}
+
+.hero-actions{
+    display: flex;
+    
+    gap: 1em;
+}
+
+.hero-actions button{
+    margin: 0%;
+}
+
+/*-- Showcase Section --*/
+.showcase{
+    display: flex;
+    flex-direction: column;
+
+    width: 70%;
+
+    z-index: 0;
+}
+
+.menu{
+    display: flex;
+
+    justify-content: space-around;
+    align-items: center;
+
+    height: min-content;
+
+    padding: 2em;
+}
+
+.prompt{
+    position: absolute;
+    color: white;
+
+    font-style: italic;
+
+    top: 40%;
+    left: 50%;
+
+    transform: translate(-50%, -50%);
+
+    margin: 0;
+}
+
+#highlights,
+#awards,
+#stats{
+    display: flex;
+    flex: 1;
+
+    position: absolute;
+    opacity: 0;
+
+    top: 0;
+    left: 0;
+    
+    justify-content: center;    
+    width: 100%;
+
+    max-height: 100vh;
+
+    pointer-events: none;
+
+    transition:
+        transform 200ms ease;
+
+    overflow: hidden;
+}
+
+#highlights.active,
+#awards.active,
+#stats.active{
+    position: relative;
+    opacity: 1;
+
+    pointer-events: auto;
+
+    transform: none !important;
+}
+
+/*-- Highlight Container --*/
+.slideshow{
+    display: grid;
+    grid-template-columns: 40% 40% 40%; /* cleaner */
+    gap: 5%;
+    
+    width: 100%;
+    height: 100%;
+    
+    justify-content: center;
+    place-items: center;
+}
+
+.slideshow video{
+    width: 100%;
+    height: auto;
+    aspect-ratio: 3/4;
+    
+    border-radius: 20px;
+    object-fit: cover;
+
+    box-shadow: 4px 2px 10px rgba(0, 0, 0, 0.3);
+    
+    transition:
+        opacity 200ms ease,
+        transform 200ms ease;
+}
+
+/*-- Awards Container --*/
+html{
+    --timeline-width: 0.25em;
+}
+
+.awards-media{
+    display: flex;
+    flex: 1;
+
+    justify-content: center;
+    align-items: center;
+        
+    min-height: 0;
+}
+
+.media-content{
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+
+    justify-content: flex-end;
+    align-items: flex-start;
+
+    color: white;
+    background: var(--card-bg);
+    background-size: cover;
+    background-position: center, center;
+    background-repeat: no-repeat, no-repeat;
+
+    border-radius: 20px;
+
+    min-width: 50%;
+    max-width: 75%;
+
+    aspect-ratio: 3/4;
+
+    padding: 1em;
+
+    transition:
+        transform 500ms ease,
+        opacity 500ms ease;
+
+    box-shadow: 4px 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.awards-timeline{
+    display: flex;
+    flex: 1;
+
+    justify-content: center;
+        
+    min-height: 0;
+
+    overflow: hidden;
+}
+
+.timeline{
+    position: relative;
+
+    width: var(--timeline-width);
+    height: 80vh;
+
+    background-color: black;
+
+    margin-top: 1em;
+}
+
+.timeline::before{
+    content: "";
+    display: block;
+
+    top: 0%;
+    left: 50%;
+
+    transform: translate(calc(-50% + var(--timeline-width) / 2), -1em);
+
+	border-left: 0.5em solid transparent;
+	border-right: 0.5em solid transparent;
+	border-bottom: 1em solid #000000;
+}
+
+.event{
+    position: relative;
+
+    width: min-content;
+    
+    cursor: pointer;    
+    padding-left: 1em;
+    
+    margin: 5em 0;
+}
+
+.event:nth-child(even){
+    transform: translateX(calc(-100% + var(--timeline-width)));
+    padding-right: 1em;
+    padding-left: 0;
+}
+
+.dot{
+    content: "";
+    position: absolute;
+
+    background-color: black;
+    
+    height: 1em;
+    width: 1em;
+    
+    border-radius: 50%;
+    border: none;
+    
+    left: 0%;
+    top: 50%;
+
+    transform: translate(calc(-50% + var(--timeline-width) / 2), -50%);
+
+    transition: border 200ms ease;
+    cursor: pointer;
+}
+
+.event:nth-child(even) .dot{
+    left: 100%;
+    transform: translate(calc(-50% - var(--timeline-width) / 2), -50%);
+}
+
+.event input[type="radio"]:checked ~ .dot{
+    border: white 3px solid;
+}
+
+.event .details{
+    display: none;
+    
+    height: 100px;
+    width: 100px;
+    
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover;
+}
+
+.event input[type="radio"]:checked ~ .details{
+    display: block;
+    position: absolute;
+
+    top: 0%;
+    left: 0%;
+}

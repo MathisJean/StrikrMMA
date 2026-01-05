@@ -1,0 +1,30 @@
+
+.hero{
+    display: flex;
+    flex-direction: column;
+
+    justify-content: center;
+    align-items: center;
+
+    width: 100%;
+    height: 90vh;
+    
+    font-size: 2rem;
+
+    background-position: center;
+    background-size: cover;
+    background-image: 
+    linear-gradient(to bottom right, rgba(255, 80, 80, 0.4), rgba(80, 120, 255, 0.4)),
+    url("/img/punching_bag_4.jpeg");
+    
+    color: white;
+}
+
+.title{
+    margin: 0%;
+}
+
+.subtitle{
+    font-style: italic;
+    margin: 0%;
+}

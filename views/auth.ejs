@@ -1,0 +1,50 @@
+<head>
+    <link rel="stylesheet" href="/css/auth.css">
+</head>
+
+<script defer type="module" src="/js/auth.js"></script>
+
+<!-- Content -->
+<section class="hero">
+    <form class="auth" id="login-form" autocomplete="off">
+        <h4 class="auth-title">Login</h4>
+        <h6 class="err-output"></h6>
+        
+        <input type="email" class="user-input" placeholder="E-mail" required autocomplete="email" oninvalid="let popup_alert = this.parentNode.querySelector('.alert_msg'); popup_alert.textContent = 'E-mail Invalide'; popup_alert.style.visibility = 'visible';">
+        <input type="password" class="user-input" placeholder="Password" required autocomplete="current-password" minlength="4" oninvalid="let popup_alert = this.parentNode.querySelector('.alert_msg'); popup_alert.textContent = 'Mot de Passe Trop Court'; popup_alert.style.visibility = 'visible';">
+        <input type="password" class="user-input" disabled style="visibility: hidden;">
+        <input type="password" class="user-input" disabled style="visibility: hidden;">
+        
+        <div class="auth-submit-wrap">
+            <button type="submit" class="gradient-btn">Login</button>
+        </div>
+    </form>
+    
+    <form class="auth" id="signup-form" autocomplete="off">
+        <h4 class="auth-title">Signup</h4>
+        <h6 class="err-output"></h6>
+        
+        <div class="auth-code-input" style="display: none;">
+            <input type="text" class="char-input" maxlength="1" placeholder="0">               
+            <input type="text" class="char-input" maxlength="1" placeholder="0">               
+            <input type="text" class="char-input" maxlength="1" placeholder="0">                         
+            <input type="text" class="char-input" maxlength="1" placeholder="0">               
+            <input type="text" class="char-input" maxlength="1" placeholder="0">               
+            <input type="text" class="char-input" maxlength="1" placeholder="0">              
+        </div>
+        
+        <p id="auth-expiry" style="display: none;">Code expires in 3 minutes</p>
+
+        <input type="text" class="user-input" id="first_name_input" placeholder="First name" required autocomplete="family-name">
+        <input type="text" class="user-input" id="last_name_input" placeholder="Last name" required autocomplete="given-name">
+        <input type="email" class="user-input" placeholder="Email" required autocomplete="email">
+        <input type="password" class="user-input" placeholder="Password" required autocomplete="new-password" minlength="4">
+
+        <div class="auth-submit-wrap">
+            <button type="button" class="link" style="display: none;">Send another code</button>
+
+            <button type="button" id="confirm-auth" class="gradient-btn" style="display: none;">Confirm</button>
+            <button type="submit" id="signup-btn" class="gradient-btn">Signup</button>
+        </div>
+    </form>
+</section>

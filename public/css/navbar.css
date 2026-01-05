@@ -1,0 +1,83 @@
+
+.navbar{
+    display: flex;
+    flex-direction: row;
+
+    position: sticky;
+
+    top: 0%;
+    left: 0%;
+
+    height: var(--navbar-height);
+    width: 100%;
+
+    margin: 0%;
+
+    background-color: rgb(0, 0, 0);
+    color: var(--main-txt);
+
+    z-index: 5;
+}
+
+.navbar-left, .navbar-middle, .navbar-right{
+    display: flex;
+
+    justify-content: center;
+    align-items: center;
+
+    padding: 0 0.5em;
+
+    width: 33.33%;
+}
+
+.navbar-left{
+    justify-content: flex-start;
+}
+
+.navbar-left img{
+    height: 3em;
+    aspect-ratio: 1;
+
+    margin-left: 0.5em;
+}
+
+.navbar-right{
+    justify-content: flex-end;
+}
+
+.navbar-navigation{
+    display: flex;
+    flex-direction: row;
+
+    justify-content: flex-end;
+    align-items: center;
+
+    width: 50%;
+
+    margin: 0%;
+    padding: 0%;
+
+    list-style: none;
+}
+
+.navbar-navigation li{
+    font-weight: 600;
+    position: relative;
+    
+    padding: 0 1em;
+    
+    height: 100%;
+    
+    transition: background-color 0.2s ease;
+    
+    cursor: pointer;
+}
+
+#profile_btn{
+    background-color: transparent;
+
+    aspect-ratio: 1;
+
+    border-radius: 50%;
+    border: none;
+}

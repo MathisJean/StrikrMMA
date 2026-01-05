@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+    <head>
+        <meta charset="UTF-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <title><%= title %></title>
+
+        <!-- Global CSS -->
+        <link rel="stylesheet" href="/css/variables.css">
+        <link rel="stylesheet" href="/css/global.css">
+        <link rel="stylesheet" href="/css/inputs.css">
+        <link rel="stylesheet" href="/css/navbar.css">
+        
+    </head>
+    
+    <body>
+        <%- include("navbar") %>
+
+        <!-- Main page content -->
+        <%- body %>
+
+        <!-- Global JS -->
+        <script>
+            const USER_ID = <%- JSON.stringify((typeof profile !== 'undefined' && profile.id) || null) %>;
+        </script>
+        <script type="module" defer src="/js/global.js"></script>
+    </body>
+</html>

@@ -1,0 +1,35 @@
+html{
+    --main-bg: rgb(10, 10, 10);
+    --second-bg: rgb(28, 28, 35);
+    --third-bg: rgb(245, 245, 250);
+
+    --main-txt: rgb(240, 240, 245);
+    --second-txt: color-mix(in srgb, #ffffff 80%, #6b7280 20%);
+    --third-txt: rgb(15, 15, 20);
+
+    --red: rgb(252, 98, 98);
+    --blue: rgb(113, 146, 255);
+    
+    --btn1-clr: rgb(255, 255, 255);
+    --btn1-txt: rgb(0,0,0);
+    --btn1-brd: rgb(230, 230, 230);
+    --btn1-act: rgb(245, 245, 245);
+    --btn1-brd-wth: 2px;
+    --btn1-pad: 2em;
+    --btn1-mrg: 1em;
+    
+    --bg: #ffffff;
+    --card-bg: #f2f3f7;
+    --text: #000000;
+    
+    --main-background-clr: rgb(0, 0, 255);
+    --main-background-txt: rgb(255, 255, 255);
+    
+    --navbar-height: 5em;
+}
+
+[data-theme="dark"] {
+    --bg: #1a1a1a;
+    --card-bg: #202020;
+    --text: #f5f5f5;
+}

@@ -1,0 +1,312 @@
+
+button{
+    position: relative;
+
+    background-color: var(--btn1-clr);
+    color: var(--btn1-txt);
+    
+    border: var(--btn1-brd) solid var(--btn1-brd-wth);
+    
+    padding: calc(var(--btn1-pad) / 1.5) var(--btn1-pad);
+    margin: var(--btn1-mrg);
+    
+    font-weight: 600;
+
+    cursor: pointer;
+}
+
+/*-- Corner Btn --*/
+.corner-btn{
+    border: none;
+    border-radius: 5px;
+
+    z-index: 1;
+
+    transition: transform 200ms ease;
+}
+
+.corner-btn:hover{
+    transform: scale(1.05);
+}
+
+.corner-btn:active{
+    transform: scale(1.02);
+}
+
+.corner-btn::before, /*Button*/
+.corner-btn::after {
+    content: "";
+    position: absolute;
+
+    width: 10px;
+    height: 10px;
+
+    transition: inset 200ms ease;
+}
+
+.corner-btn::before {
+    inset: 0 auto auto 0;
+    background-color: var(--blue);
+
+    clip-path: polygon(
+        0 0,
+        100% 0,
+        100% 50%,
+        50% 50%,
+        50% 100%,
+        0 100%
+    );
+
+    border-radius: 5px 0 0 0;
+}
+
+.corner-btn:hover::before {
+    inset: -4px 0 0 -4px;
+}
+
+.corner-btn:active::before {
+    inset: -6px 0 0 -6px;
+}
+
+.corner-btn::after {
+    inset: auto 0 0 auto;
+    background-color: var(--red);
+    
+    clip-path: polygon(
+        0 0,
+        100% 0,
+        100% 100%,
+        0 100%,
+        0 50%,
+        50% 50%,
+        50% 0
+    );
+
+    border-radius: 0 0 5px 0;
+}
+
+.corner-btn:hover::after {
+    inset: auto -4px -4px auto;
+}
+
+.corner-btn:active::after {
+    inset: auto -6px -6px auto;
+}
+
+/*-- Split Btn --*/
+.split-btn::before, /*Button*/
+.split-btn::after {
+    content: "";
+    position: absolute;
+    
+    width: 0%;
+    height: 100%;
+    
+    z-index: -1;
+    
+    transition:
+    inset 200ms ease,
+    height 200ms ease,
+    width 200ms ease-in;
+}
+
+.split-btn::before {
+    inset: auto auto 0% 0%;
+    background-color: var(--blue);
+}
+
+.split-btn:hover::before {
+    width: 54%;
+    height: 120%;
+    
+    inset: auto auto -10% -5%;
+}
+
+.split-btn::after {
+    inset: auto 0% 0% auto;
+    background-color: var(--red);
+}
+
+.split-btn:hover::after {
+    width: 54%;
+    height: 120%;
+    
+    inset: auto -5% -10% auto;
+}
+
+.split-btn:active::before, 
+.split-btn:active::after {
+    width: 50%;
+}
+
+/*-- Gradient Btn --*/
+.gradient-btn{ /*Button*/
+    color: white;
+    background-image: linear-gradient(to bottom right, var(--blue), var(--red));
+    
+    border: none;
+    border-radius: 2em;
+
+    transition: border-radius 200ms ease;
+}
+
+.gradient-btn:hover{
+    border-radius: 5px;
+}
+
+.gradient-btn:active{
+    border-radius: 10px;
+}
+
+/*-- Gradient Txt --*/
+.gradient-txt{ /*P*/
+    position: relative;
+    transition: color 200ms ease;
+}
+
+.gradient-txt:hover{
+    color: transparent;
+}
+
+.gradient-txt::after{
+    content: attr(data-text);
+    position: absolute;
+
+    top: 0;
+    left: 0;
+
+    width: 100%;
+    height: 100%;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    background-image: linear-gradient(to bottom right, var(--blue), var(--red));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+
+    opacity: 0;
+    transition: opacity 200ms ease;
+}
+
+.gradient-txt:hover::after{
+    opacity: 1;
+}
+
+/*-- Text Inputs --*/
+.user-input{ /*Text Input*/
+    border: 2px solid var(--main-txt);
+    outline: none;
+
+    margin: 0.5em;
+    padding: 0.5em;
+
+    width: 100%;
+}
+
+.auth-code-input{ /*Input Container*/
+    display: flex;
+    justify-content: space-between;
+
+    outline: none;
+
+    margin: 0.25em;
+    padding: 0.25em;
+
+    width: 100%;
+}
+
+.char-input{ /*Text Input*/
+    border: 2px solid var(--main-txt);
+    outline: none;
+
+    width: 3ch;
+    height: 3ch;
+    
+    text-align: center;
+
+    margin: 0%;
+    padding: 0%;
+}
+
+/*-- Error Output --*/
+.err-output{ /*Header*/
+    display: flex;
+    align-items: center;
+
+    color: white;
+
+    font-size: 0.5em;
+
+    margin: 0%;
+    padding: 1em 0.5em;
+
+    width: 100%;
+    height: 1em;
+
+    overflow: hidden;
+}
+.err-output:not(:empty){ /*Header*/
+    background-color: var(--red);
+}
+
+.err-output:empty{
+    background-color: transparent;
+}
+
+/*-- Link --*/
+.link{ /*Button*/
+    color: var(--blue);
+    
+    font-style: italic;
+    
+    border: none;
+    
+    margin: 0%;
+    padding: 0%;
+}
+
+.link:active{
+    opacity: 0.8;
+    background-color: transparent;
+}
+
+/*-- Gradient Text Button --*/
+.gradient-txt-btn{ /*Radio*/
+    position: relative;
+    
+    color: white;
+    background-color: transparent;
+
+    font-size: 1.5em;
+    font-weight: 900;
+    
+    border: none;
+    border-radius: 20px;
+    
+    padding: 0.5em;
+
+    white-space: nowrap;
+    cursor: pointer;
+
+    transition: background-color 200ms ease;
+}
+
+input[type="radio"]:checked + .gradient-txt-btn{
+    background-color: var(--card-bg);
+}
+
+.gradient-txt-btn span{
+    transition:
+        -webkit-text-fill-color 200ms ease,
+        text-fill-color 200ms ease;
+}
+
+input[type="radio"]:checked + .gradient-txt-btn span{
+    background-image: linear-gradient(to bottom right, var(--blue), var(--red));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
