@@ -7,15 +7,15 @@ html{
     --second-txt: color-mix(in srgb, #ffffff 80%, #6b7280 20%);
     --third-txt: rgb(15, 15, 20);
 
-    --red: rgb(252, 98, 98);
-    --blue: rgb(113, 146, 255);
+    --red: #E4002B;
+    --blue: #003DA5;
     
     --btn1-clr: rgb(255, 255, 255);
     --btn1-txt: rgb(0,0,0);
     --btn1-brd: rgb(230, 230, 230);
     --btn1-act: rgb(245, 245, 245);
     --btn1-brd-wth: 2px;
-    --btn1-pad: 2em;
+    --btn1-pad: 1.5em;
     --btn1-mrg: 1em;
     
     --bg: #ffffff;
@@ -26,6 +26,8 @@ html{
     --main-background-txt: rgb(255, 255, 255);
     
     --navbar-height: 5em;
+
+	--placeholder-clr: #999;
 }
 
 [data-theme="dark"] {

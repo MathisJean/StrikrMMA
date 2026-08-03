@@ -183,8 +183,7 @@ select{
     flex: 1;
 }
 
-.img_drop_area
-{
+.drop_area{
     display: flex;
 
     justify-self: center;
@@ -206,6 +205,11 @@ select{
     cursor: pointer;
 }
 
+.event-input{
+    background-color: transparent !important;
+    backdrop-filter: blur(5px);
+}
+
 #vid_view,
 #img_view{
     display: flex;
@@ -223,8 +227,7 @@ select{
     aspect-ratio: 1;
 }
 
-.vid_drop_area
-{
+.vid_drop_area{
     display: flex;
 
     justify-content: center;
@@ -302,6 +305,10 @@ button{
 
     background-color: var(--card-bg);
 
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover;
+
     position: relative;
     
     border-radius: 8px;
@@ -316,7 +323,8 @@ button{
 
 /* Timeline structure */
 #timeline-section,
-#video-section{
+#video-section,
+#record-section{
     display: flex;
     flex-direction: column;
     align-items: center;

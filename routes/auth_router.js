@@ -47,58 +47,54 @@ router.post("/login", async (req, res) => {
 
 //Signup Post HTTP request
 router.post("/signup", async (req, res) => {
-  const { first_name, last_name, email } = req.body;
+  const { corner, username, email, password } = req.body;
 
-  const auth_code = Math.floor(100000 + Math.random() * 900000).toString();
-
-  try {
-    const result = await pool.query(
+  try{
+    const email_result = await pool.query(
       `SELECT * FROM users WHERE email = $1`,
       [email]
     );
 
-    if (result.rows.length > 0) {
-      return res.status(409).json({ error: "Email already in use" });
+    if(email_result.rows.length > 0){
+      return res.status(409).json({ message: "Email already registered" });
     }
 
-    //TODO: send email
-    console.log(auth_code);
-
-    return res.status(200).json({ code: auth_code });
-
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ error: "Server error" });
-  }
-});
-
-
-router.post("/complete", async (req, res) => 
-{
-  const { user_first_name, user_last_name, user_email, user_password } = req.body;
-
-  //Define incoming data
-  try{
-    const result = await pool.query(
-      `INSERT INTO users (email, first_name, last_name, password_hash)
-      VALUES ($1, $2, $3, $4)
-      RETURNING *`,
-      [user_email, user_first_name, user_last_name, user_password]
+    const username_result = await pool.query(
+      `SELECT * FROM users WHERE username = $1`,
+      [username]
     );
 
-    user = result.rows[0];
+    if(username_result.rows.length > 0){
+      return res.status(409).json({ message: "Username already registered" });
+    }
 
-    //Session cookies
-    req.session.user_id = user.id;
+	//Define incoming data
+	try{
+		const result = await pool.query(
+			`INSERT INTO users (email, first_name, last_name, password_hash)
+			VALUES ($1, $2, $3, $4)
+			RETURNING *`,
+			[corner, username, email, password] //TODO: Hash password
+		);
 
-    return res.sendStatus(200).json({ success: true, user: { id: user.id, first_name: user.first_name } });
+		user = result.rows[0];
+
+		//Session cookies
+		req.session.user_id = user.id;
+
+		return res.sendStatus(200);
+	}
+	catch(err)
+	{
+		console.error(err);
+		return res.status(500).json({ message: "Server error" });
+	}
+
   }
-  catch(err)
-  {
-    console.error(err);
-    return res.status(500).json({ error: "Server error" });
+  catch(err){
+    return res.status(500).json({ message: "Server error" });
   }
-})
+});
 
 //Export router to server file
 module.exports = router

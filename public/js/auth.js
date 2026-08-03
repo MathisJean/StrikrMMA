@@ -1,5 +1,47 @@
 import { GET, POST, PUT, DELETE} from "./http_requests.js";
 
+const auth_container = document.querySelector('.section-auth');
+const visual_container = document.querySelector('.section-visual');
+const login_swtich_btn = document.getElementById('login-switch');
+const signup_switch_btn = document.getElementById('signup-switch');
+
+//Toggle to login In mode
+signup_switch_btn.addEventListener('click', () => {
+	auth_container.classList.remove('auth-signup');
+	visual_container.classList.remove('visual-signup');
+
+	history.pushState(null, '', '#login');
+});
+
+//Toggle to Sign Up mode
+login_swtich_btn.addEventListener('click', () => {
+	auth_container.classList.add('auth-signup');
+	visual_container.classList.add('visual-signup');
+
+	history.pushState(null, '', '#signup');
+});
+
+
+// Auto-check URL hash on page load (e.g. if visiting /auth#signup)
+window.addEventListener('DOMContentLoaded', () => {
+  if(window.location.hash === '#signup'){
+	auth_container.classList.add('auth-signup');
+	visual_container.classList.add('visual-signup');
+  }
+});
+
+window.addEventListener('hashchange', () => {
+	if(window.location.hash === '#signup'){
+		auth_container.classList.add('auth-signup');
+		visual_container.classList.add('visual-signup');
+	}
+
+	if(window.location.hash === '#login'){
+		auth_container.classList.remove('auth-signup');
+		visual_container.classList.remove('visual-signup');
+	}
+});
+
 //Change focus on user inputs
 Array.from(document.querySelectorAll(".auth .user_input")).forEach((input, index, inputs) =>
 {
@@ -16,36 +58,6 @@ Array.from(document.querySelectorAll(".auth .user_input")).forEach((input, index
                 inputs[index + 1].select();
             };
         }
-    });
-});
-
-//Change focus on authentication inputs
-Array.from(document.querySelectorAll("#signup-form .char-input")).forEach((input, index, inputs) =>
-{
-    input.addEventListener("input", (event) => 
-    {
-        if(event.inputType === "insertText" && event.data.match(/^[0-9]$/)) 
-        {
-            //Move to the next input if available
-            if(index < inputs.length - 1) 
-            {
-                inputs[index + 1].focus();
-                inputs[index + 1].select();
-            };
-        }
-    });
-
-    input.addEventListener("keydown", (event) => 
-    {
-        if(event.key === "Backspace" && input.value === "") 
-        {
-            //Move to the prev input if available
-            if(index > 0) 
-            {
-                inputs[index - 1].focus();
-                inputs[index - 1].value = "";
-            };
-        };
     });
 });
 
@@ -93,40 +105,26 @@ async function login(event){
 //-- Signup Elements --//
 const signup_form = document.getElementById("signup-form");
 
-const signup_user_inputs = signup_form.querySelectorAll(".user-input");
-const auth_code_div = signup_form.querySelector(".auth-code-input");
-const auth_inputs = signup_form.querySelectorAll(".char-input");
-
-const signup_error_output = signup_form.querySelector(".err-output");
-const link_btn = signup_form.querySelector(".link");
-const expiry_el = signup_form.querySelector("#auth-expiry");
-
-const confirm_btn = signup_form.querySelector("#confirm-auth");
-const signup_btn = signup_form.querySelector("#signup-btn");
-
-let auth_code = "";
-let payload = null; // store for confirm
-
 signup_form.addEventListener("submit", event => signup(event));
 
 async function signup(event){
     event.preventDefault();
 
-    let user_first_name = signup_form.querySelector("#first_name_input")?.value;
-    let user_last_name = signup_form.querySelector("#last_name_input")?.value;
-    let user_email = signup_form.querySelector("input[type='email']").value;
-    let user_password = signup_form.querySelector("input[type='password']").value;
+	let user_corner = signup_form.querySelector("input[name='input-corner']:checked")?.value || "";
+    let user_username = signup_form.querySelector("input[type='text']")?.value || "";
+    let user_email = signup_form.querySelector("input[type='email']")?.value || "";
+    let user_password = signup_form.querySelector("input[type='password']")?.value || "";
 
-    payload = JSON.stringify({
+    const payload = JSON.stringify({
         id: "",
-        first_name: user_first_name,
-        last_name: user_last_name,
-        password: user_password,
-        email: user_email    
+        corner: user_corner,
+        username: user_username,
+        email: user_email,    
+        password: user_password
     });
 
     try{
-        const data = await fetch("/auth/login", {
+        const data = await fetch("/auth/signup", {
             method: "POST",
             headers:{
                 "Content-Type": "application/json"
@@ -134,46 +132,22 @@ async function signup(event){
             body: payload
         });
 
-        if(data.status !== 200){
-            signup_error_output.textContent = data.error;
-            return;
+		const result = await response.json().catch(() => ({}));
+
+        if(!response.ok){
+            const error = new Error(result.message || "An unexpected error occurred.");
+            error.status = response.status;
+            error.details = result.error || result.message || "Signup failed.";
+            throw error;
         }
 
-        auth_code = data.code;
-
-        signup_user_inputs.forEach(input => input.style.display = "none");
-
-        auth_code_div.style.display = "flex";
-        link_btn.style.display = "block";
-        expiry_el.style.display = "block";
-
-        confirm_btn.style.display = "block";
-        signup_btn.style.display = "none";
+        //Redirect or handle successful signup here
+        window.location.href = "/u/" + user_username;
     }
-    catch(err){
-        console.error(err);
+	catch(err){
+        const statusCode = err.status || "500";
+        const message = err.details || err.message || "Network error. Please try again.";
+
+        show_error("Registration Failed", statusCode, message);
     }
 }
-
-confirm_btn.addEventListener("click", async () => {
-    let user_auth_code = Array.from(auth_inputs).map(i => i.value.trim()).join("");
-    
-    if(user_auth_code === auth_code.trim()){
-        auth_inputs.forEach(input => input.value = "");
-
-        try{
-            const data = await fetch("/auth/complete", {
-                method: "POST",
-                headers:{
-                    "Content-Type": "application/json"
-                },
-                body: payload
-            });
-
-            console.log("Account created", data);
-        }
-        catch(err){
-            console.error(err);
-        }
-    }
-});

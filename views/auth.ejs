@@ -5,46 +5,91 @@
 <script defer type="module" src="/js/auth.js"></script>
 
 <!-- Content -->
-<section class="hero">
-    <form class="auth" id="login-form" autocomplete="off">
-        <h4 class="auth-title">Login</h4>
-        <h6 class="err-output"></h6>
-        
-        <input type="email" class="user-input" placeholder="E-mail" required autocomplete="email" oninvalid="let popup_alert = this.parentNode.querySelector('.alert_msg'); popup_alert.textContent = 'E-mail Invalide'; popup_alert.style.visibility = 'visible';">
-        <input type="password" class="user-input" placeholder="Password" required autocomplete="current-password" minlength="4" oninvalid="let popup_alert = this.parentNode.querySelector('.alert_msg'); popup_alert.textContent = 'Mot de Passe Trop Court'; popup_alert.style.visibility = 'visible';">
-        <input type="password" class="user-input" disabled style="visibility: hidden;">
-        <input type="password" class="user-input" disabled style="visibility: hidden;">
-        
-        <div class="auth-submit-wrap">
-            <button type="submit" class="gradient-btn">Login</button>
-        </div>
-    </form>
-    
-    <form class="auth" id="signup-form" autocomplete="off">
-        <h4 class="auth-title">Signup</h4>
-        <h6 class="err-output"></h6>
-        
-        <div class="auth-code-input" style="display: none;">
-            <input type="text" class="char-input" maxlength="1" placeholder="0">               
-            <input type="text" class="char-input" maxlength="1" placeholder="0">               
-            <input type="text" class="char-input" maxlength="1" placeholder="0">                         
-            <input type="text" class="char-input" maxlength="1" placeholder="0">               
-            <input type="text" class="char-input" maxlength="1" placeholder="0">               
-            <input type="text" class="char-input" maxlength="1" placeholder="0">              
-        </div>
-        
-        <p id="auth-expiry" style="display: none;">Code expires in 3 minutes</p>
+<section class="main-section">
+	<div class="section-auth">
+		<form class="auth" id="login-form" autocomplete="off">
+			<h1 class="auth-title">LOG IN</h1>
+			<p class="auth-description">Welcome back to your corner.</p>
 
-        <input type="text" class="user-input" id="first_name_input" placeholder="First name" required autocomplete="family-name">
-        <input type="text" class="user-input" id="last_name_input" placeholder="Last name" required autocomplete="given-name">
-        <input type="email" class="user-input" placeholder="Email" required autocomplete="email">
-        <input type="password" class="user-input" placeholder="Password" required autocomplete="new-password" minlength="4">
+			<div class="auth-inputs">
+				<label class="auth-label">
+					EMAIL
+					<input type="email" class="user-input" placeholder="you@exemple.com" required autocomplete="email" oninvalid="let popup_alert = this.parentNode.querySelector('.alert_msg'); popup_alert.textContent = 'E-mail Invalide'; popup_alert.style.visibility = 'visible';">
+				</label>
+				
+				<label class="auth-label">
+					PASSWORD
+					<input type="password" class="user-input" placeholder="··········" required autocomplete="current-password" minlength="8" oninvalid="let popup_alert = this.parentNode.querySelector('.alert_msg'); popup_alert.textContent = 'Mot de Passe Trop Court'; popup_alert.style.visibility = 'visible';">
+				</label>
+			</div>
+			
+			<div class="auth-submit-wrap">
+				<button type="submit" class="solid2-btn">ENTER</button>
+			</div>
 
-        <div class="auth-submit-wrap">
-            <button type="button" class="link" style="display: none;">Send another code</button>
+			<p class="auth-switch" id="login-switch">Don't have an account? <span>Join Now</span></p>
+		</form>
 
-            <button type="button" id="confirm-auth" class="gradient-btn" style="display: none;">Confirm</button>
-            <button type="submit" id="signup-btn" class="gradient-btn">Signup</button>
-        </div>
-    </form>
+		<form class="auth" id="signup-form" autocomplete="off" style="opacity: 0; pointer-events: none;">
+			<h1 class="auth-title">SIGN UP</h1>
+			<p class="auth-description">Choose your corner.</p>	
+			
+			<div class="auth-inputs">
+				<label class="auth-label" id="auth-corner">
+					CORNER
+					<div id="corner-radio">
+						<input type="radio" name="input-corner" value="red">
+						<input type="radio" name="input-corner" value="blue">
+					</div>
+				</label>
+
+				<label class="auth-label">
+					USERNAME
+					<div class="input-wrapper">
+						<span class="prefix">strikr.com/u/</span>
+						<input type="text" class="user-input" placeholder="username" autocomplete="username">
+						<span class="input-status"></span>
+					</div>
+				</label>
+
+				<label class="auth-label">
+					EMAIL
+					<div class="input-wrapper">
+						<input type="email" class="user-input" placeholder="you@exemple.com" autocomplete="email" oninvalid="let popup_alert = this.parentNode.querySelector('.alert_msg'); popup_alert.textContent = 'E-mail Invalide'; popup_alert.style.visibility = 'visible';">
+						<span class="input-status"></span>
+					</div>
+				</label>
+				
+				<label class="auth-label">
+					PASSWORD
+					<div class="input-wrapper">
+						<input type="password" class="user-input" placeholder="··········" autocomplete="current-password" minlength="8" oninvalid="let popup_alert = this.parentNode.querySelector('.alert_msg'); popup_alert.textContent = 'Mot de Passe Trop Court'; popup_alert.style.visibility = 'visible';">
+						<span class="input-status"></span>
+					</div>
+				</label>
+			</div>
+
+			<div class="auth-submit-wrap">
+				<button type="submit" id="signup-btn" class="solid-btn">ENTER</button>
+			</div>
+
+			<p class="auth-switch" id="signup-switch">Already have an account? <span>Log In</span></p>
+		</form>
+	</div>
+
+	<div class="section-visual">
+		<div id="visual-login">
+			<h1 class="visual-title">BACK INTO</h1>
+			<h1 class="visual-title"><span>THE RING</span></h1>
+
+			<p class="visual-description">Log in to your profile. Manage your fighter stats. Keep building your record. Show them you're ready.</p>
+		</div>
+
+		<div id="visual-signup">
+			<h1 class="visual-title">STEP INTO</h1>
+			<h1 class="visual-title"><span>THE RING</span></h1>
+
+			<p class="visual-description">Create your fighter profile. Connect your Instagram. Share your record. Let the world know who you are.</p>
+		</div>
+	</div>
 </section>

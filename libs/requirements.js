@@ -11,11 +11,11 @@ const expressLayouts = require("express-ejs-layouts");
 
 const { Pool } = require('pg');
 const pool = new Pool({
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  host: process.env.DB_HOST,
-  database: process.env.DB_DATABASE,
-  port: process.env.DB_PORT
+	user: process.env.DB_USER,
+	password: process.env.DB_PASSWORD,
+	host: process.env.DB_HOST,
+	database: process.env.DB_DATABASE,
+	port: process.env.DB_PORT
 });
 
 const email_auth = require("../libs/email_auth");

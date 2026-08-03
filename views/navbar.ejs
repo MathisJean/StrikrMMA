@@ -1,26 +1,28 @@
 <nav class="navbar">
     <div class="navbar-left">
-        <img src="/img/StrikrMMA.png">
+        <img src="/logo/strikr_logo_normal.png" onclick="location.href='/home'">
     </div>
     
     <div class="navbar-middle">
-        <h2 class="gradient-txt">StrikrMMA</h2>
+		<div class="search-container">
+			<form autocomplete="off">
+				<div class="input-wrapper">
+					<button type="button" id="search-icon"><img src="/svg/search.svg" onclick="{document.getElementById('search-bar').focus()}"></button>
+					<input type="search" name="search" id="search-bar" placeholder="Search for athletes">
+					<button type="button" id="search-clear"><img src="/svg/close.svg"></button>
+				</div>
+
+				<button type="submit" class="solid-btn">FIND</button>
+			</form>
+		</div>
     </div>
 
     <div class="navbar-right">
         <ul class="navbar-navigation">
-            <li onclick="location.href='/home'">
-                <p class="gradient-txt">Home</p>
-            </li>
-            <li onclick="location.href='/athletes'">
-                <p class="gradient-txt">Explore</p>
-            </li>
-            <li onclick="location.href='/about us'">
-                <p class="gradient-txt">About Us</p>
-            </li>
+
         </ul>
 
         <button id="profile_btn" type="button" style="display: none; background: url('/svg/account_icon.svg'); background-repeat: no-repeat; background-size: cover; background-position: center;"></button>
-        <button id="join_btn" class="gradient-btn" onclick="location.href='/auth'">Join the fight</button>
+        <button id="join_btn" class="solid-btn" onclick="location.href='/auth#login'">JOIN THE FIGHT</button>
     </div>
 </nav> 

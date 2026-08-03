@@ -82,43 +82,38 @@
                 </div>
 
                 <!-- Profile Picture -->
-                <label class="img_drop_area" style="background-image: url('<%= profile.profile_pic_url %>');">
+                <label class="drop_area" style="background-image: url('<%= profile.profile_pic_url %>');">
                     <input type="file" name="profile_pic_url" class="input_file profile-input" accept="image/*" hidden>
 
                     <img id="img_view" src="/svg/image.svg">
                 </label>
             </div>
 
-
-            <!-- Video Highlights -->
-            <div class="section" id="video-section">
-                <!--
-                <div id="video-container">
-                    <% for(let i = 0; i < highlights.length; i++){ %>
+            <!-- Record -->
+            <div class="section" id="record-section">
+                <div class="slideshow">
+                    <% for (let i = 0; i < highlights.length; i++) { %>
                         <div data-id="<%= highlights[i].id %>" class="video-upload" data-src="<%= highlights[i].video_url %>">
-                            <label class="vid_drop_area">
+                            <label class="drop_area">
                                 <input type="file" name="video_url" class="input_file highlight-input" accept="video/*" hidden data-src="<%= highlights[i].video_url %>">
                                 <img id="vid_view" src="/svg/video.svg">
                             </label>
                             <button type="button" class="remove-btn"><img src="/svg/delete.svg"></button>
                         </div>
                     <% } %>
-                
-                    <script>
-                        document.querySelectorAll('.video-upload .remove-btn').forEach(btn => {
-                            btn.addEventListener('click', (e) => {
-                                const div = e.target.closest('.video-upload');
-                                if(div) div.remove();
-                            });
-                        });
-                    </script>
                 </div>
-                -->
 
+                <p class="prompt" style="display: none;">It looks empty here...</p>
+
+                <button type="button" id="add-video-btn" class="gradient-btn">Add Fight</button>
+            </div>
+
+            <!-- Video Highlights -->
+            <div class="section" id="video-section">
                 <div class="slideshow">
                     <% for (let i = 0; i < highlights.length; i++) { %>
                         <div data-id="<%= highlights[i].id %>" class="video-upload" data-src="<%= highlights[i].video_url %>">
-                            <label class="vid_drop_area">
+                            <label class="drop_area">
                                 <input type="file" name="video_url" class="input_file highlight-input" accept="video/*" hidden data-src="<%= highlights[i].video_url %>">
                                 <img id="vid_view" src="/svg/video.svg">
                             </label>
@@ -134,13 +129,13 @@
 
             <!-- Timeline -->
             <div class="section" id="timeline-section">
-                <div id="timeline-container">
-                    <% for(let i = 0; i < events.length; i++){ %>
-                        <div data-id="<%= events[i].id %>" class="timeline-item">
+                <div class="slideshow">
+                    <% for (let i = 0; i < events.length; i++) { %>
+                        <div data-id="<%= events[i].id %>" style="background-image: url('<%= events[i].img_url %>')" class="timeline-item">
                             <label>Title<input type="text" name="title" class="event-input" value="<%= events[i].title %>"></label>
                             <label>Description<input type="text" name="description" class="event-input" value="<%= events[i].description %>"></label>
 
-                            <label class="img_drop_area" style="background-image: url('<%= events[i].img_url %>'); border-radius: 1rem;">
+                            <label class="drop_area">
                                 <input type="file" name="img_url" class="input_file event-input" accept="image/*" hidden>
 
                                 <img id="img_view" src="/svg/image.svg">
@@ -149,16 +144,9 @@
                             <button type="button" class="remove-btn"><img src="/svg/delete.svg"></button>
                         </div>
                     <% } %>
-
-                    <script>
-                        document.querySelectorAll('.timeline-item .remove-btn').forEach(btn => {
-                            btn.addEventListener('click', (e) => {
-                                const div = e.target.closest('.timeline-item');
-                                if(div) div.remove();
-                            });
-                        });
-                    </script>
                 </div>
+
+                <p class="prompt" style="display: none;">It looks empty here...</p>
 
                 <button type="button" id="add-timeline-btn" class="gradient-btn">Add Event</button>
             </div>

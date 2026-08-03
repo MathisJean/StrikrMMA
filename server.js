@@ -10,12 +10,9 @@ let port = process.env.PORT || 3000;
 //Get dymamic IP address
 const networkInterfaces = os.networkInterfaces();
 
-for (const iface of Object.values(networkInterfaces))
-{
-  for (const ifaceInfo of iface) 
-  {
-    if (ifaceInfo.family === "IPv4" && !ifaceInfo.internal) 
-    {
+for(const iface of Object.values(networkInterfaces)){
+  for(const ifaceInfo of iface){
+    if(ifaceInfo.family === "IPv4" && !ifaceInfo.internal){
       host = ifaceInfo.address;
     };
   };
@@ -45,7 +42,6 @@ app.use((req, res, next) => {
 
 app.get('/', (req, res) => res.redirect(301, '/home'));
 app.use(express.json());
-app.use(express.static('public'));
 app.set("view engine", "ejs");
 
 //----Using Routers----//
@@ -58,28 +54,22 @@ app.use('/api', api_router);
 const home_router = require('./routes/home_router');
 app.use('/home', home_router);
 
-//Explore
-const explore_router = require('./routes/explore_router');
-app.use('/explore', explore_router);
-
-//Login
+//Authentication
 const auth_router = require('./routes/auth_router');
 app.use('/auth', auth_router);
 
 //Athletes
 const athletes_router = require('./routes/athletes_router');
-app.use('/athletes', athletes_router);
+app.use('/u', athletes_router);
 
 //Error
-app.use((req, res) => 
-{
+app.use((req, res) => {
   res.status(404).render("error");
 });
 
 const http_server = http.createServer(app);
 
 //Start up server
-http_server.listen(port, host, () => 
-{
+http_server.listen(port, host, () => {
   console.log(`Server running at http://${host}:${port} close it with CTRL + C`);
 });

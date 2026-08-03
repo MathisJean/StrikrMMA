@@ -1,55 +1,337 @@
 
-.hero{
+.main-section{
     display: flex;
     flex-direction: row;
 
-    justify-content: space-evenly;
-    align-items: center;
-
     width: 100%;
-    height: 90vh;
-    
-    font-size: 2rem;
+    height: calc(100% - var(--navbar-height));
 
-    background-position: center;
-    background-size: cover;
-    background-image: 
-    linear-gradient(to bottom right, rgba(255, 80, 80, 0.4), rgba(80, 120, 255, 0.4)),
-    url("/img/punching_bag_4.jpeg");
-    
-    color: white;
+	background:
+		linear-gradient(to bottom right, rgba(255, 80, 80, 0.3),rgba(0, 0, 0, 0.3) , rgba(80, 120, 255, 0.3)),
+		rgb(0, 1, 1);
+}
+
+.section-auth{
+	display: flex;
+
+	justify-content: center;
+	align-items: center;
+
+	position: relative;
+
+	background-color: white;
+	border-right: 0.5em var(--blue) solid;
+	border-left: 0em var(--red) solid;
+
+	width: 50%;
+	height: 100%;
+
+	padding: 2em;
+
+	transition:
+		transform 400ms ease-in-out,
+		border-width 400ms ease;
+
+	z-index: 5;
+}
+
+.auth-signup{
+	transform: translateX(100%);
+
+	border-right: 0em var(--blue) solid;
+	border-left: 0.5em var(--red) solid;
+}
+
+.auth-signup #login-form{
+	opacity: 0;
+	pointer-events: none;
+}
+
+.auth-signup #signup-form{
+	opacity: 1 !important;
+	pointer-events: all !important;
+}
+
+.section-visual{
+	width: 50%;
+	height: 100%;
 }
 
 .auth{
     display: flex;
     flex-direction: column;
     
-    justify-content: baseline;
+    justify-content: center;
     align-items: center;
+
+	position: absolute;
+
+	font-size: 1.25em;
     
     background-color: white;
-    color: black;
+    color: black;   
 
-    height: 50%;
-    
-    border-radius: 50px;
-    
-    padding: 0.5em 3em;
+	transition: opacity 400ms ease-in-out;
+}
+
+.auth *{
+	margin: 0;
 }
 
 .auth-title{
-    margin: 1em;
+	text-align: start;
+	width: 100%;
+
+	font-family: "Oswald", sans-serif;
+}
+
+.auth-description{
+	text-align: start;
+	width: 100%;
+
+	color: var(--placeholder-clr);
+}
+
+.auth-inputs{
+	display: flex;
+	flex-direction: column;
+
+	gap: 1em;
+
+	width: 100%;
+	padding: 2em 0em;;
+}
+
+.auth-label{
+	font-family: "Oswald", sans-serif;
+	font-size: 0.75em;
+	color: var(--placeholder-clr);
+}
+
+#auth-corner{
+	display: flex;
+	flex-direction: column;
+
+	align-items: baseline;
+}
+
+#corner-radio{
+	display: flex;
+	flex-direction: row;
+
+	justify-content: space-evenly;
+
+	width: 100%;
+}
+
+#corner-radio input{
+    position: relative;
+    appearance: none;
+    -webkit-appearance: none;
+    
+    width: 45%;
+    height: 2em;
+    cursor: pointer;
+}
+
+/* Common style for pseudo-elements */
+#corner-radio input::after{
+    content: "";
+
+    position: absolute;
+    inset: 0;            
+
+	border-radius: 0.25em;
+	border: white 5px solid;
+
+    transition: border-width 200ms ease;
+}
+
+#corner-radio input:first-child::after{
+    background-color: var(--red);
+}
+
+#corner-radio input:nth-child(2)::after{
+	background-color: var(--blue);
+}
+
+
+#corner-radio input:checked::after{
+	border: white 0px solid;
+}
+
+.auth-label .input-wrapper{
+    display: flex;
+	flex-direction: row;
+
+	align-items: center;
+
+    border: 1px solid var(--main-txt);
+    outline: none;
+
+    padding: 0.5em;
+
+	border-radius: 0.25em;
+
+    width: 100%;
+	height: 100%;
+}
+
+.auth-label .input-wrapper span{
+	font-size: 0.9em;
+
+	padding: 0;
+}
+
+.auth-label .input-wrapper input{ 
+	color: black;   
+	background-color: white;
+
+    width: 100%;
+    height: 100%;
+    
+    border: none;
+    border-radius: 0.25em;
+    
+    padding: 0;
+}
+
+.auth-label .input-wrapper .input-status{
+	height: 1.5em;
+
+	aspect-ratio: 1;
+
+	background-size: cover;
+	background-position: center;
+	background-repeat: no-repeat;
+	background-image: url("/svg/cancel.svg");
 }
 
 .auth-submit-wrap{
-    display: flex;
-    flex-direction: column;
+	width: 100%;
+}
 
-    height: 100%;
+.auth-submit-wrap *{
+	width: 100%;
+}
 
-    justify-content: end;
+.auth-switch{
+	color: var(--placeholder-clr);
+	font-size: 0.75em;
+
+	margin-top: 2em;
+}
+
+.auth-switch span{
+	position: relative;
+
+	color: black;
+	font-weight: 700;
+
+	transition: color 200ms ease;
+}
+
+.auth-switch span:hover{
+	color: var(--blue);
+}
+
+.auth-switch span:after{
+	content: "";
+	display: block;
+	position: absolute;
+
+	width: 100%;
+	height: 1px;
+
+	bottom: 0%;
+	left: 0%;
+
+	background-color: black;
 }
 
 #auth-expiry{
     font-size: 0.5em;
+}
+
+.section-visual{
+	position: relative;
+
+	color: white;
+
+	padding: 2em;
+
+	transition:
+		transform 400ms ease-in-out;
+}
+
+.visual-signup{
+	align-items: baseline;
+
+	transform: translateX(-100%);
+}
+
+#visual-login, #visual-signup{
+	display: flex;
+	flex-direction: column;
+
+	justify-content: end;
+	align-items: end;
+
+	width: 100%;
+
+	padding: 2em;
+
+	position: absolute;
+	bottom: 0;
+
+	transition: opacity 400ms ease-in-out;
+}
+
+#visual-login{	
+	right: 0;
+	opacity: 1;
+}
+
+#visual-signup{	
+	align-items: baseline;
+
+	right: 0;
+	opacity: 0;
+}
+
+.visual-signup #visual-login{
+	opacity: 0;
+}
+
+.visual-signup #visual-signup{
+	opacity: 1;
+}
+
+.visual-title{
+	font-size: 4em;
+	font-family: 'Oswald', sans-serif;
+
+	margin: 0em;
+}
+
+.visual-title span{
+	font-family: 'Oswald', sans-serif;
+
+	color: var(--blue);
+
+	transition: color 400ms ease-in-out;
+}
+
+.visual-signup .visual-title span{
+	color: var(--red);
+}
+
+.visual-description{
+	max-width: 50%;
+
+	color: var(--placeholder-clr);
+}
+
+#visual-login .visual-description{
+	text-align: right;
 }

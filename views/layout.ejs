@@ -1,6 +1,11 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="light">
     <head>
+		<!-- Fonts --> <!-- TODO: Remove unused -->
+		<link rel="preconnect" href="https://fonts.googleapis.com">
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+		<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Oswald:wght@500;600;700&display=swap" rel="stylesheet">
+
         <meta charset="UTF-8">
         <meta http-equiv="X-UA-Compatible" content="IE=edge">
         <title><%= title %></title>
@@ -18,6 +23,13 @@
 
         <!-- Main page content -->
         <%- body %>
+
+		<dialog id="error-dialog" class="error-modal">
+			<div class="error-content">
+				<h4 id="error-context"></h4>
+				<p id="error-message">HTTP <span id="error-code"></span> : <span id="error-text"></span></p>
+			</div>
+		</dialog>
 
         <!-- Global JS -->
         <script>

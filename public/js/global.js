@@ -62,3 +62,26 @@ async function logout(){
     await POST("/api/logout");
     window.location.href = "/";
 }
+
+//-- Error Display --//
+window.show_error = function(err_context, err_code, err_text){
+	const error_dialog = document.getElementById("error-dialog");
+	const error_context = document.getElementById("error-context");
+	const error_code = document.getElementById("error-code");
+	const error_text = document.getElementById("error-text");
+
+	if(!error_dialog){
+        console.warn("#error-dialog element not found on this page.");
+        return;
+    }
+
+	if(error_context) error_context.textContent = err_context;
+    if(error_code) error_code.textContent = err_code;
+    if(error_text) error_text.textContent = err_text;
+
+	error_dialog.style.transform = "translateY(0%)";
+
+	setTimeout(() => {
+		error_dialog.style.transform = "translateY(100%)";
+	}, 3000)
+}
