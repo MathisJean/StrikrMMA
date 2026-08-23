@@ -283,6 +283,8 @@
 	border: none;
     border-radius: 0.25em;
 
+	overflow: hidden;
+
     opacity: 0;
     transition: opacity 0.3s ease, transform 0.3s ease;
 
@@ -308,8 +310,6 @@
     border-radius: 0.25em;
 
     padding: 1em;
-
-	font-family: 'Oswald', sans-serif;
 }
 
 .user-name{
