@@ -35,9 +35,34 @@
 }
 
 .subtitle{
+	display: flex;
+	flex-direction: column;
+
+	position: relative;
+
+	gap: 0.5em;
+
 	text-align: center;
 
     margin: 0%;
+}
+
+.subtitle::after{
+	content: "";
+	display: block;
+
+	position: absolute;
+	top: 50%;
+	left: 50%;
+
+	transform: translate(-50%, -50%);
+
+	background-color: var(--red);
+	border-radius: 0.25em;
+
+	width: 1em;
+
+	aspect-ratio: 8 / 1;
 }
 
 .description{
@@ -47,9 +72,9 @@
 	align-items: center;
 	height: calc(25% - var(--navbar-height));
 
-	border-top: 0.5rem var(--red) solid;
-
 	padding: 3em 5em;
+
+	border-top: solid var(--red) 0.5em;
 }
 
 .description-widgets{
@@ -85,6 +110,4 @@
 	color: grey;
 
 	text-align: center;
-
-	font-family: "Inter", sans-serif;
 }

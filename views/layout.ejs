@@ -15,7 +15,6 @@
         <link rel="stylesheet" href="/css/global.css">
         <link rel="stylesheet" href="/css/inputs.css">
         <link rel="stylesheet" href="/css/navbar.css">
-        
     </head>
     
     <body>
@@ -33,8 +32,9 @@
 
         <!-- Global JS -->
         <script>
-            const USER_ID = <%- JSON.stringify((typeof profile !== 'undefined' && profile.id) || null) %>;
+			const USER_ID = <%- (typeof profile !== 'undefined' && profile?.id) ? JSON.stringify(profile.id) : 'null' %>;
         </script>
+
         <script type="module" defer src="/js/global.js"></script>
     </body>
 </html>

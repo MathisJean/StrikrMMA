@@ -5,9 +5,9 @@ const router = express.Router()
 
 //Setup Router
 router.get("/", (req, res) => {
-  res.render("home", {
-    title: "Strikr | Home",
-  });
+	res.render("home", {
+		title: "Strikr | Home",
+	});
 });
 
 //Export router to server file

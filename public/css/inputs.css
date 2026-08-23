@@ -1,5 +1,9 @@
 
-button{
+.btn{
+	display: flex;
+	justify-content: center;
+	align-items: center;
+
     position: relative;
 
     background-color: var(--btn1-clr);
@@ -8,28 +12,50 @@ button{
     border: var(--btn1-brd) solid var(--btn1-brd-wth);
     
     padding: calc(var(--btn1-pad) / 1.5) var(--btn1-pad);
-    margin: var(--btn1-mrg);
     
     font-weight: 600;
 
     cursor: pointer;
+
+	text-decoration: none;
+
+	transform-origin: center;
+
+	transition: transform 200ms ease;
+}
+
+.btn:active{
+	transform: scale(0.99);
 }
 
 /*-- Solid Btn --*/
 .solid-btn{
+	position: relative;
+
+	font-weight: 600;
+
 	border: none;
     border-radius: 5px;
 
 	color: white;
 	background-color: var(--red);
 
+	font-size: 0.75em;
 	font-weight: 700;
 
 	border-radius: 0.25em;
+	cursor: pointer;
+
+	text-decoration: none;
+
+	padding: calc(var(--btn1-pad) / 1.5) var(--btn1-pad);
 
     z-index: 1;
 
 	font-family: "Oswald", sans-serif;
+
+	transform-origin: center;
+	transition: transform 200ms ease;
 }
 
 .solid-btn::before{ /*Button*/
@@ -55,20 +81,38 @@ button{
     
     inset: auto auto 0% 0%;
 }
+
+.solid-btn:active{
+	transform: scale(0.99);
+}
+
 .solid2-btn{
+	position: relative;
+
+	font-weight: 600;
+
 	border: none;
     border-radius: 5px;
 
 	color: white;
 	background-color: var(--blue);
 
+	font-size: 0.75em;
 	font-weight: 700;
 
 	border-radius: 0.25em;
+	cursor: pointer;
+
+	text-decoration: none;
+
+	padding: calc(var(--btn1-pad) / 1.5) var(--btn1-pad);
 
     z-index: 1;
 
 	font-family: "Oswald", sans-serif;
+
+	transform-origin: center;
+	transition: transform 200ms ease;
 }
 
 .solid2-btn::before{ /*Button*/
@@ -93,6 +137,11 @@ button{
     height: 100%;
     
     inset: auto auto 0% 0%;
+}
+
+
+.solid2-btn:active{
+	transform: scale(0.99);
 }
 
 /*-- Corner Btn --*/

@@ -11,18 +11,21 @@
 					<input type="search" name="search" id="search-bar" placeholder="Search for athletes">
 					<button type="button" id="search-clear"><img src="/svg/close.svg"></button>
 				</div>
-
-				<button type="submit" class="solid-btn">FIND</button>
 			</form>
 		</div>
     </div>
 
     <div class="navbar-right">
-        <ul class="navbar-navigation">
+        <!-- <ul class="navbar-navigation"></ul> -->
 
-        </ul>
-
-        <button id="profile_btn" type="button" style="display: none; background: url('/svg/account_icon.svg'); background-repeat: no-repeat; background-size: cover; background-position: center;"></button>
-        <button id="join_btn" class="solid-btn" onclick="location.href='/auth#login'">JOIN THE FIGHT</button>
+        <a id="profile_btn" class="btn" style="display: none; background-repeat: no-repeat; background-size: cover; background-position: center;"></a>
+        <a id="join_btn" class="solid-btn btn" href='/auth#login'>JOIN THE FIGHT</a>
     </div>
+
+	<section class="search-menu">
+		<div class="results"></div>
+		
+		<div class="pagination" style="opacity: 0;"></div>
+	</section>
+
 </nav> 

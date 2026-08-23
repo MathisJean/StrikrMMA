@@ -26,8 +26,12 @@ html{
     --main-background-txt: rgb(255, 255, 255);
     
     --navbar-height: 5em;
+	--navbar-clr: rgba(0, 0, 0, 1);
+	--navbar-txt: rgb(255, 255, 255);
 
 	--placeholder-clr: #999;
+
+	--grid-size: 5em;
 }
 
 [data-theme="dark"] {

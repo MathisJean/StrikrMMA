@@ -1,150 +1,170 @@
 <head>
-    <link rel="stylesheet" href="/css/profile.css">
-    <script id="media-data" type="application/json">
-      <%- JSON.stringify(events) %>
-    </script>
-    
+    <link rel="stylesheet" href="/css/profile.css">   
     <script defer src="/js/profile.js"></script>
 </head>
 
+<style>
+	html{
+		--corner: var(<%= locals.corner === 'red' ? '--red' : '--blue' %>);
+	}
+</style>
+
 <div class="page">
-    <section class="hero">
-        <div
-            class="profile-img"
-            style="background-image:
-                url('<%= profile.profile_pic_url %>'),
-                linear-gradient(to bottom right, rgb(235, 235, 235), white);"
-        >
-            <% if(is_owner){ %>
-                <div id="setting_btn">
-                    <svg xmlns="http://www.w3.org/2000/svg" height="32px" viewBox="0 -960 960 960" width="32px" fill="#FFFFFF"><path d="m370-80-16-128q-13-5-24.5-12T307-235l-119 50L78-375l103-78q-1-7-1-13.5v-27q0-6.5 1-13.5L78-585l110-190 119 50q11-8 23-15t24-12l16-128h220l16 128q13 5 24.5 12t22.5 15l119-50 110 190-103 78q1 7 1 13.5v27q0 6.5-2 13.5l103 78-110 190-118-50q-11 8-23 15t-24 12L590-80H370Zm112-260q58 0 99-41t41-99q0-58-41-99t-99-41q-59 0-99.5 41T342-480q0 58 40.5 99t99.5 41Z"/></svg>
-                </div>
+	<section class="hero">
+		<% if(is_owner){ %>
+			<div class="owner-btn">
+				<div id="setting_btn">
+					<svg xmlns="http://www.w3.org/2000/svg" height="28px" width="28px" viewBox="0 -960 960 960" fill="#FFFFFF"><path d="m370-80-16-128q-13-5-24.5-12T307-235l-119 50L78-375l103-78q-1-7-1-13.5v-27q0-6.5 1-13.5L78-585l110-190 119 50q11-8 23-15t24-12l16-128h220l16 128q13 5 24.5 12t22.5 15l119-50 110 190-103 78q1 7 1 13.5v27q0 6.5-2 13.5l103 78-110 190-118-50q-11 8-23 15t-24 12L590-80H370Zm112-260q58 0 99-41t41-99q0-58-41-99t-99-41q-59 0-99.5 41T342-480q0 58 40.5 99t99.5 41Z"/></svg>
+				</div>
 
-                <div id="logout_btn">
-                    <svg xmlns="http://www.w3.org/2000/svg" height="32px" viewBox="0 -960 960 960" width="32px" fill="#FFFFFF">
-                        <!-- Main body of the icon -->
-                        <path d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h280v80H200v560h280v80H200Z"/>
-                        
-                        <!-- Arrow part -->
-                        <path id="arrow" d="M640-280l-55-58 102-102H360v-80h327L585-622l55-58 200 200-200 200Z"/>
-                    </svg>
-                </div>
-            <% } %>
-        </div>
-        
-        <div class="hero-content">
-            <div class="content-card">
-                <!--
-                <div aria-label="Verified fighter profile" class="verified-badge <%= !profile.verified ? 'hidden' : '' %>">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
-                        <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
-                            <path d="M3.85 8.62a4 4 0 0 1 4.78-4.77a4 4 0 0 1 6.74 0a4 4 0 0 1 4.78 4.78a4 4 0 0 1 0 6.74a4 4 0 0 1-4.77 4.78a4 4 0 0 1-6.75 0a4 4 0 0 1-4.78-4.77a4 4 0 0 1 0-6.76"></path>
-                            <path d="m9 12l2 2l4-4"></path>
-                        </g>
-                    </svg>
-                    <span>Verified</span>
-                </div>
-                -->
-                
-                <h1 id="hero-title" class="fighter-profiles-hero-title hero-title">
-                    <%= profile.first_name %>
-                    <% if(profile.nickname){ %>
-                        "<%= profile.nickname %>"
-                    <% } %>
-                    <%= profile.last_name %>
-                </h1>
-                
-                <p id="hero-subtitle"><%= profile.weight_class %></p>
-                
-                <div class="stats-block">
-                    <button class="stat-pill corner-btn"><span class="stat-number"><%= profile.wins %></span><span class="stat-label">W</span></button>
-                    <button class="stat-pill corner-btn"><span class="stat-number"><%= profile.losses %></span><span class="stat-label">L</span></button>
-                    <button class="stat-pill corner-btn"><span class="stat-number"><%= profile.decisions %></span><span class="stat-label">D</span></button>
-                    <button class="stat-pill corner-btn"><span class="stat-number"><%= profile.ko %></span><span class="stat-label">KOs</span></button>
-                    <button class="stat-pill corner-btn"><span class="stat-number"><%= profile.submissions %></span><span class="stat-label">Subs</span></button>
-                </div>
-                
-                <div class="credentials-badges">
-                    <button class="badge corner-btn" ><%= profile.badge1 %></button>
-                    <button class="badge corner-btn"><%= profile.badge2 %></button>
-                    <button class="badge corner-btn"><%= profile.badge3 %></button>
-                </div>
-                
-                <div class="hero-actions">
-                    <!--
-                        <button ria-label="Follow" class="gradient-btn">
-                            <svg xmlns="http://www.w3.org/2000/svg" height="18px" viewBox="0 -960 960 960" width="18px" fill="#FFFFFF">
-                                <path d="M720-400v-120H600v-80h120v-120h80v120h120v80H800v120h-80Zm-360-80q-66 0-113-47t-47-113q0-66 47-113t113-47q66 0 113 47t47 113q0 66-47 113t-113 47ZM40-160v-112q0-34 17.5-62.5T104-378q62-31 126-46.5T360-440q66 0 130 15.5T616-378q29 15 46.5 43.5T680-272v112H40Zm80-80h480v-32q0-11-5.5-20T580-306q-54-27-109-40.5T360-360q-56 0-111 13.5T140-306q-9 5-14.5 14t-5.5 20v32Zm240-320q33 0 56.5-23.5T440-640q0-33-23.5-56.5T360-720q-33 0-56.5 23.5T280-640q0 33 23.5 56.5T360-560Zm0-80Zm0 400Z"/>
-                            </svg>
-                        </button>
-                    -->
+				<div id="logout_btn">
+					<svg xmlns="http://www.w3.org/2000/svg" height="28px" width="28px" viewBox="0 -960 960 960" fill="#FFFFFF">
+						<!-- Main body of the icon -->
+						<path d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h280v80H200v560h280v80H200Z"/>
+						
+						<!-- Arrow part -->
+						<path id="arrow" d="M640-280l-55-58 102-102H360v-80h327L585-622l55-58 200 200-200 200Z"/>
+					</svg>
+				</div>
+			</div>
+		<% } %>
 
-                    <button aria-label="Instagram" class="gradient-btn" onclick="window.open('https://instagram.com/<%= profile.instagram_url %>', '_blank')">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 22 22" role="img" aria-label="Instagram">
-                            <title>Instagram</title>
-                            <rect x="3" y="3" width="18" height="18" rx="5" ry="5" fill="none" stroke="currentColor" stroke-width="2"/>
-                            <circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="2"/>
-                            <circle cx="17.5" cy="6.5" r="1" fill="currentColor"/>
-                        </svg>
-                    </button>
-                    
-                    <button aria-label="Share" class="gradient-btn" onclick="copy_link()" style="cursor: copy;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24">
-                            <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2v13m4-9l-4-4l-4 4m-4 6v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
-                        </svg>
-                    </button>
-                </div>
-            </div>
-        </div>
-    </section>
-    
-    <section class="showcase">
-        <div class="menu">
-            <input type="radio" name="tabs" id="tab1" hidden checked>
-            <label for="tab1" class="gradient-txt-btn"><span>Highlights</span></label>
+		<div class="hero-content">	
+			<% if(profile.nickname){ %>
+				<h2 id="hero-nickname">"<%= profile.nickname %>"</h2>
+			<% } %>
 
-            <input type="radio" name="tabs" id="tab2" hidden>
-            <label for="tab2" class="gradient-txt-btn"><span>Awards</span></label>
-        </div>
+			<h1 id="hero-title" class="fighter-profiles-hero-title hero-title">
+				<%= profile.first_name %>
+				<%= profile.last_name %>
+			</h1>
 
-        <div id="highlights">
-            <div class="slideshow">
-                <% for (let i = 0; i < highlights.length; i++) { %>
-                    <video src="<%= highlights[i].video_url %>" muted loop style="display: block;"></video>
-                <% } %>
-            </div>
+			<div class="credentials-badges">
+				<% for(let i = 0; i < badges.martial_arts.length; i++){ %>
+					<div class="badge"><%= badges.martial_arts[i].name %></div>
+				<% } %>
 
-            <p class="prompt" style="display: none;">It looks empty here...</p>
-        </div>
-        
-        <div id="awards">
-            <div class="awards-media">
-                <div class="media-content">
-                    <h2 id="media-title"></h2>
-                    <p id="media-subtitle"></p>
-                </div>
-            </div>
-            
-            <div class="awards-timeline">
-                <div class="timeline">
-                    <% for (let i = 0; i < events.length; i++) { %>
-                        <div class="event">
-                            <input 
-                            type="radio" 
-                            name="timeline" 
-                            id="event<%= i + 1 %>" 
-                            hidden 
-                            <%= i === 0 ? 'checked' : '' %>
-                            >
-                            <label for="event<%= i + 1 %>" class="gradient-txt-btn">
-                                <span><%= events[i].title.trim() %></span>
-                            </label>
-                            <label for="event<%= i + 1 %>" class="dot"></label>
-                        </div>
-                    <% } %>
-                </div>
-            </div>
-            <p class="prompt" style="display: none;">It looks empty here...</p>
-        </div>
-    </section>
+				<% for(let i = 0; i < badges.weight_classes.length; i++){ %>
+					<div class="badge"><%= badges.weight_classes[i].name %></div>
+				<% } %>
+			</div>
+		</div>
+
+		<div class="profile-img <%= profile.profile_picture_url ? 'custom' : 'default' %>" style="background-image: <%= profile.profile_picture_url ? `url(${profile.profile_picture_url});` : 'url(/svg/profile.svg);' %>">
+	</section>
+
+	<section class="content">
+		<div class="actions-wrapper">
+			<div class="content-actions">
+				<div aria-label="Verified fighter profile" class="<%= corner == 'red' ? 'solid-btn' : 'solid2-btn' %> verified-badge <%= !profile.verified ? 'hidden' : '' %>">
+					<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24">
+						<g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+							<path d="M3.85 8.62a4 4 0 0 1 4.78-4.77a4 4 0 0 1 6.74 0a4 4 0 0 1 4.78 4.78a4 4 0 0 1 0 6.74a4 4 0 0 1-4.77 4.78a4 4 0 0 1-6.75 0a4 4 0 0 1-4.78-4.77a4 4 0 0 1 0-6.76"></path>
+							<path d="m9 12l2 2l4-4"></path>
+						</g>
+					</svg>
+					<span>Verified</span>
+				</div>
+
+				<% if(profile.instagram_url){ %>
+				<button aria-label="Instagram" class=<%= corner == "red" ? "solid-btn" : "solid2-btn" %> onclick="window.open('https://instagram.com/<%= profile.instagram_url %>', '_blank')">
+					<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 22 22" role="img" aria-label="Instagram">
+						<title>Instagram</title>
+						<rect x="3" y="3" width="18" height="18" rx="5" ry="5" fill="none" stroke="currentColor" stroke-width="2"/>
+						<circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="2"/>
+						<circle cx="17.5" cy="6.5" r="1" fill="currentColor"/>
+					</svg>
+
+					<span>Follow</span>
+				</button>
+				<% } %>
+
+				<button aria-label="Share" class=<%= corner == "red" ? "solid-btn" : "solid2-btn" %> onclick="copy_link()">
+					<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-share2 lucide-share-2 size-4" aria-hidden="true">
+						<circle cx="18" cy="5" r="3"></circle>
+						<circle cx="6" cy="12" r="3"></circle>
+						<circle cx="18" cy="19" r="3"></circle>
+						<line x1="8.59" x2="15.42" y1="13.51" y2="17.49"></line>
+						<line x1="15.41" x2="8.59" y1="6.51" y2="10.49"></line>
+					</svg>
+				
+					<span>Share</span>
+				</button>
+			</div>
+
+			<div class="content-tags">
+				<% for(let i = 0; i < tags.length; i++){ %>
+					<div class="tag <%= corner == 'red' ? 'solid-btn' : 'solid2-btn' %>"><%= tags[i].tag_text %></div>
+				<% } %>
+			</div>
+		</div>
+
+		<div class="content-sections">
+			<div class="section-specs">
+				<h3>THE SPECS</h3>
+				<div class="specs-details">
+					<% if(profile.date_of_birth){ %> <div><span>AGE</span><span><%= calculate_age(profile.date_of_birth) %></span></div> <% } %>
+					<% if(profile.height){ %> <div><span>HEIGHT</span><span><%= calculate_height(profile.height) %></span></div> <% } %>
+					<% if(profile.stance){ %> <div><span>STANCE</span><span><%= profile.stance %></span></div> <% } %>
+					<% if(profile.team){ %> <div><span>TEAM</span><span><%= profile.team %></span></div> <% } %>
+					<% if(profile.hometown){ %> <div><span>HOMETOWN</span><span><%= profile.hometown %></span></div> <% } %>
+					<% if(corner){ %> <div><span>CORNER</span><span><%= corner %></span></div> <% } %>
+					<% if(profile.walkout_song && profile.walkout_song_artist){ %> <div><span>WALKOUT SONG</span><span><%= profile.walkout_song %>, <%= profile.walkout_song_artist %></span></div> <% } %>
+				</div>
+			</div>
+
+			<div class="section-numbers">
+				<h3>THE NUMBERS</h3>
+				<div class="numbers-details">
+					<div class="details-stat">
+						<div class="stat-bar">
+							<div class="bar-visual" style="width: <%= (record.wins / (record.total_fights == 0 ? 1 : record.total_fights)) * 100 %>%;"></div>
+						</div>
+						<h4 class="details-description"><%= record.wins %> WINS</h4>
+					</div>
+
+					<div class="details-stat">
+						<div class="stat-bar">
+							<div class="bar-visual" style="width: <%= (record.losses / (record.total_fights == 0 ? 1 : record.total_fights)) * 100 %>%;"></div>
+						</div>
+						<h4 class="details-description"><%= record.losses %> LOSSES</h4>
+					</div>
+
+					<div class="details-stat">
+						<div class="stat-bar">
+							<div class="bar-visual" style="width: <%= (record.draws / (record.total_fights == 0 ? 1 : record.total_fights)) * 100 %>%;"></div>
+						</div>
+						<h4 class="details-description"><%= record.draws %> DRAWS</h4>
+					</div>
+
+					<div class="details-stat">
+						<div class="stat-bar">
+							<div class="bar-visual" style="width: <%= (record.ko / (record.total_fights == 0 ? 1 : record.total_fights)) * 100 %>%;"></div>
+						</div>
+						<h4 class="details-description"><%= record.ko %> KO/TKO</h4>
+					</div>
+
+					<div class="details-stat">
+						<div class="stat-bar">
+							<div class="bar-visual" style="width: <%= (record.submissions / (record.total_fights == 0 ? 1 : record.total_fights)) * 100 %>%;"></div>
+						</div>
+						<h4 class="details-description"><%= record.submissions %> SUB</h4>
+					</div>
+				</div>
+			</div>
+
+			<div class="section-timeline">
+				<h3>THE STORY</h3>
+				<div class="timeline-details">
+					<% for(let i = 0; i < awards.length; i++){ %>
+						<div class="details-award">
+							<h5 class="award-year"><%= calculate_year(awards[i].date_earned) %></h5>
+							<h4 class="award-title"><%= awards[i].title %></h4>
+							<p class="award-description"><%= awards[i].description %></p>
+						</div>
+					<% } %>
+				</div>
+			</div>
+		</div>
+	</section>
 </div>

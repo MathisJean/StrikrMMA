@@ -18,12 +18,19 @@ const pool = new Pool({
 	port: process.env.DB_PORT
 });
 
-const email_auth = require("../libs/email_auth");
-
-const { serverside_encrypt, serverside_decrypt, http_encrypt } = require("../libs/encryption");
+const bcrypt = require('bcrypt');
 
 const session = require("express-session");
 const PgStore = require("connect-pg-simple")(session);
+
+const { v2: cloudinary } = require('cloudinary');
+
+//Configure Cloudinary
+cloudinary.config({
+	cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+	api_key: process.env.CLOUDINARY_API_KEY,
+	api_secret: process.env.CLOUDINARY_API_SECRET
+});
 
 //Export everything you want to reuse
 module.exports = {
@@ -36,12 +43,11 @@ module.exports = {
   expressLayouts,
   
   pool,
-  email_auth,
 
-  serverside_encrypt,
-  serverside_decrypt,
-  http_encrypt,
+  bcrypt,
 
   session,
-  PgStore
+  PgStore,
+
+  cloudinary
 };
