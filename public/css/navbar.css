@@ -135,6 +135,10 @@
     left: 50%;
     transform: translate(-50%, 0%);
 
+	margin: 0%;
+
+	background-color: transparent;
+
     font-weight: 600;
 }
 
@@ -143,11 +147,14 @@
     justify-content: flex-start;
 }
 
-.navbar-left img{
+.navbar-left a{
     height: 100%;
     aspect-ratio: 1;
+}
 
-    margin-left: 0.5em;
+.navbar-left a img{
+	height: 100%;
+    aspect-ratio: 1;
 }
 
 .navbar-right{
@@ -232,8 +239,8 @@
 
 	z-index: -1;
 
-	overflow-y: auto; /* Fallback if screen height is extremely small */
-
+	overflow-y: hidden;
+	
 	transition:
 		transform 400ms ease-in-out;
 }

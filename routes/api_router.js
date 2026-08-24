@@ -54,7 +54,7 @@ const EDITABLE_FIELDS = {
     profiles: [
         "nickname", "stance", "team", "hometown",
         "walkout_song", "walkout_song_artist",
-        "profile_picture_url", "instagram_url",
+        "profile_picture_url", "profile_banner_url", "instagram_url",
         "height_feet", "height_inches"
     ],
     records: [
@@ -108,7 +108,7 @@ async function update_simple_table(client, table_name, where_column, where_value
             }
 
             column_values[key] = value;
-			profile_picture_url = value;
+			if(key === 'profile_picture_url') profile_picture_url = value;
             continue;
         }
 
@@ -303,6 +303,52 @@ router.get("/session", async(req, res) => {
     }
 	catch(err){
         console.error(err);
+        return res.status(500).json({ error: "Server error" });
+    }
+});
+
+router.delete("/delete-account", async(req, res) => {
+    if(!req.session.user_id){
+        return res.status(401).json({ error: "No active session" });
+    }
+
+    try{
+        const profiles = await pool.query(
+            "SELECT id, profile_picture_url, profile_banner_url FROM profiles WHERE user_id = $1",
+            [req.session.user_id]
+        );
+
+        const profile_ids = profiles.rows.map(p => p.id);
+
+        const highlights = profile_ids.length > 0
+            ? await pool.query("SELECT video_url FROM highlights WHERE profile_id = ANY($1)", [profile_ids])
+            : { rows: [] };
+
+        const media_urls = [
+            ...profiles.rows.flatMap(p => [p.profile_picture_url, p.profile_banner_url]),
+            ...highlights.rows.map(h => h.video_url)
+        ].filter(Boolean);
+
+        await pool.query("DELETE FROM users WHERE id = $1", [req.session.user_id]);
+
+        req.session.destroy(err => {
+            if(err){
+                console.error("Failed to destroy session after account deletion:", err);
+                return res.status(500).json({ error: "Failed to complete account deletion" });
+            }
+
+            res.clearCookie("connect.sid");
+            res.status(200).json({ success: true });
+
+            media_urls.forEach(url => {
+                delete_cloudinary_image(url).catch(err => {
+                    console.error("Orphaned media cleanup failed:", err);
+                });
+            });
+        });
+    }
+    catch(err){
+        console.error("Failed to delete account:", err);
         return res.status(500).json({ error: "Server error" });
     }
 });

@@ -111,7 +111,7 @@ router.post("/signup", async (req, res) => {
         const userResult = await client.query(
             `INSERT INTO users (username, email, password_hash, corner)
              VALUES ($1, $2, $3, $4) RETURNING id`,
-            [username, email, password_hash, corner]
+            [username, email, hashed_password, corner]
         );
         const userId = userResult.rows[0].id;
 

@@ -27,15 +27,11 @@ window.addEventListener("DOMContentLoaded", async () => { //TODO:Clean Search Pa
 			join_btn.style.display = "none";
 
             profile_btn.style.display = "block";
-            profile_btn.style.backgroundImage = `url('${user.profile_picture_url}'), url('/svg/profile.svg')`;
+            profile_btn.style.backgroundImage = `url('${user.profile_picture_url}'), url('/svg/profile_light.svg')`;
 
-            profile_btn.addEventListener('click', () => {
-                window.location.assign(`/u/${user.username.toLowerCase()}`);
-            });
-            
-            setting_btn?.addEventListener('click', () => {
-                window.location.assign(`/u/${user.username.toLowerCase()}/settings`);
-            });
+			profile_btn.href = `/u/${user.username.toLowerCase()}`;
+
+			setting_btn.href = `/u/${user.username.toLowerCase()}/settings`;
             
             logout_btn?.addEventListener('click', () => {
                 logout();
@@ -234,7 +230,9 @@ function render_users(profiles, url, search){
     if(profiles.length <= 0){
         const p = document.createElement('p');
         p.id = "search-prompt";
-        p.innerHTML = "Profile not found";
+        p.innerHTML = "Profile not Found";
+
+		pagination.innerHTML = '';
 
         results.append(p);
 
@@ -246,7 +244,7 @@ function render_users(profiles, url, search){
         a.classList.add("user");
 
         if(profile.profile_picture_url) a.dataset.bg = `${profile.profile_picture_url}`;
-		else a.dataset.bg = `/svg/profile.svg`;
+		else a.dataset.bg = `/svg/profile_dark.svg`;
         a.href = `/u/${profile.username}`
 
         a.innerHTML = `

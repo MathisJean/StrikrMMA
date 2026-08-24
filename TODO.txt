@@ -1,0 +1,22 @@
+[ ] Terms & Conditions 
+[ ] Privacy Policy
+[ ] Clean Up Code + Comments
+[ ] Debugging
+[ ] Mobile UI
+[ ] Settings Drop Area Fill Mode
+[x] Account Deletion
+[ ] Error Page (404 / 500)
+[ ] Environment Variables & Security Audit
+[ ] Rate Limiting & Auth Input Sanitization
+[ ] Favicon & Web Manifest
+[ ] Empty States for Unfilled Profile Sections
+[ ] Session Security
+[ ] Accent Insensitive Search
+[ ] Content Reporting
+[ ] Password Reset
+
+[ ] General Popup Class (Confirm Actions + Terms & Conditions)
+[ ] OpenGraph Meta Tags & SEO
+[ ] Sentry Error Handling
+[ ] Skeleton Loaders
+[ ] Preloaded / Fast / Optimized Profile Pages

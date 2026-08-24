@@ -18,6 +18,8 @@ document.addEventListener("DOMContentLoaded",() => {
 		const initial_url = container.dataset.initialimage;
 
 		FilePond.create(input, {
+			stylePanelLayout: 'integrated',
+						
 			files: initial_url ? [
 				{
 					source: initial_url,
@@ -106,11 +108,11 @@ function get_difference(initial, current){
     return has_changes ? diff : undefined;
 }
 
-function get_form_data(form){
+function get_form_data(){
     const payload = {};
     const form_data = new FormData();
 
-    form.querySelectorAll('[data-group]').forEach(input => {
+    document.querySelectorAll('[data-group]').forEach(input => {
         const { group, field, index } = input.dataset;
 
 		if(group === 'profile_weight_classes'){
@@ -183,9 +185,11 @@ profile_form.addEventListener('submit', async(event) => {
     event.preventDefault();
 
     try{
-        const { payload: current_state, form_data: form_data } = get_form_data(profile_form);
+        const { payload: current_state, form_data: form_data } = get_form_data();
 		
         const changes = get_difference(initial_state, current_state);
+
+		console.log(initial_state, current_state)
 
 		if(changes === undefined){
 			show_error("No Changed Made", "", "", false, false);
@@ -204,7 +208,9 @@ profile_form.addEventListener('submit', async(event) => {
 		const data = await response.json();
 
         if(response.ok){
-			if(data.profile_picture_url !== undefined) profile_btn.style.backgroundImage = `url('${data.profile_picture_url}'), url('/svg/profile.svg')`;
+			if(data.profile_picture_url !== undefined) profile_btn.style.backgroundImage = `url('${data.profile_picture_url}'), url('/svg/profile_light.svg')`;
+
+			initial_state = current_state;
 
 			show_error("Saved Changed", "", "", false, false);
         }
@@ -220,5 +226,40 @@ profile_form.addEventListener('submit', async(event) => {
         const message = err.details || err.message || "Error Saving Data.";
 
         show_error("Failed to Save Changes", statusCode, message);
+    }
+});
+
+//-- Delete Account --//
+const delete_account_btn = document.getElementById("delete-account-btn");
+const delete_account_dialog = document.getElementById("delete-account-dialog");
+const cancel_delete_btn = document.getElementById("cancel-delete-btn");
+const confirm_delete_btn = document.getElementById("confirm-delete-btn");
+
+delete_account_btn?.addEventListener('click',() => {
+    delete_account_dialog.showModal();
+});
+
+cancel_delete_btn?.addEventListener('click',() => {
+    delete_account_dialog.close();
+});
+
+confirm_delete_btn?.addEventListener('click', async() => {
+    try{
+        const response = await fetch("/api/delete-account", { method: "DELETE" });
+
+        if(!response.ok){
+            const result = await response.json();
+            const error = new Error(result.error || "Error Deleting Account.");
+            error.status = response.status;
+            throw error;
+        }
+
+        window.location.href = "/";
+    }
+    catch(err){
+        delete_account_dialog.close();
+
+        const statusCode = err.status || "500";
+        show_error("Failed to Delete Account", statusCode, err.message);
     }
 });

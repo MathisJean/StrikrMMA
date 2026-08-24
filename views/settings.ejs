@@ -10,13 +10,26 @@
 <script src="https://cdn.jsdelivr.net/npm/filepond-plugin-image-preview@4.6.11/dist/filepond-plugin-image-preview.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/filepond@4.32.7/dist/filepond.min.js"></script>
 
+<style>
+	html{
+		--corner: var(<%= locals.corner === 'red' ? '--red' : '--blue' %>);
+	}
+</style>
+
 <div class="settings-wrapper">
     <!-- Main Content -->
     <main class="content">
 
         <!-- Profile Tab -->
         <section id="profile-tab" class="tab-content active">
-            <h1>SETTINGS</h1>
+			<header class="header">
+				<h1>SETTINGS</h1>
+
+				<label class="drop_area" data-group="profiles" data-field="profile_banner_url" data-initialImage="<%= profile.profile_banner_url || '' %>">
+                    <input type="file" name="profile_banner_url" class="filepond">
+                    <img id="img_view" src="/svg/image.svg" alt="Preview">
+                </label>
+			</header>
 
             <!-- Basic Info -->
             <form id="profile-form" class="section" action="upload/profile" method="POST" enctype="multipart/form-data">
@@ -149,7 +162,7 @@
 
                     <!-- Awards -->
                     <div class="awards-container">
-                        <% for(let i = 0; i < 3; i++) { %>
+                        <% for(let i = 0; i < 4; i++) { %>
                             <label>
                                 AWARD <%= i + 1 %>
                                 <input type="text" name="title_<%= i + 1 %>" placeholder="Title" class="profile-input" value="<%= awards[i]?.title %>" data-group="awards" data-field="title" data-index="<%= i %>">
@@ -162,14 +175,37 @@
                 <!-- Form Submit -->
                 <button type="submit" id="save-btn" class="<%= corner == 'red' ? 'solid-btn' : 'solid2-btn' %>">SAVE</button>
             </form>
+
+            <!-- Danger Zone -->
+            <div class="danger-zone">
+                <div>
+                    <h2>DELETE ACCOUNT</h2>
+                    <p>Permanently delete your account, profile, and all associated data. This cannot be undone.</p>
+                </div>
+
+                <button type="button" id="delete-account-btn" class="solid-btn">DELETE ACCOUNT</button>
+            </div>
         </section>
     </main>
 </div>
 
+<dialog id="delete-account-dialog" class="confirm-modal">
+    <div class="confirm-content">
+        <h3>Delete Account</h3>
+        <p>This will permanently delete your account, profile, and all associated data. This action cannot be undone.</p>
+
+        <div class="confirm-actions">
+            <button type="button" id="cancel-delete-btn" class="solid2-btn">CANCEL</button>
+            <button type="button" id="confirm-delete-btn" class="solid-btn">DELETE MY ACCOUNT</button>
+        </div>
+    </div>
+</dialog>
+
 <!-- Initialized FilePond after DOM nodes are parsed -->
 <script>
-	const initial_state = {
+	let initial_state = {
 		profiles: {
+			profile_banner_url: "<%- profile.profile_banner_url %>",
 			profile_picture_url: "<%- profile.profile_picture_url %>",
 			nickname: "<%- profile.nickname %>",
 			height_feet: <%- Math.floor(profile.height / 12) %>,

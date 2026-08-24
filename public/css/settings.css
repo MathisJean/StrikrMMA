@@ -21,7 +21,7 @@ body{
     height: calc(100vh - var(--navbar-height));
     width: 100%;
 
-    overflow: hidden;
+    overflow-y: scroll;
 }
 
 /* -------------------- */
@@ -74,16 +74,31 @@ body{
     height: 100%;
 }
 
-.tab-content{
-    display: none;
+.header{
+	position: relative;
+
+	width: 100%;
+
+	border-bottom: 0.5em var(--red) solid;
 }
 
-.tab-content.active{
-    display: block;
-}
+.header > h1{
+	position: absolute;
 
-.tab-content > h1{
+	left: 0%;
+	bottom: 0%;
+
 	font-family: 'Oswald', sans-serif;
+
+	z-index: 5;
+
+	margin: 1rem;
+}
+
+.header > .drop_area{
+	width: 100%;
+
+	aspect-ratio: 8 / 1;
 }
 
 /* Sections */
@@ -289,13 +304,11 @@ select{
 .filepond--credits{
 	display: flex;
 
-	left: 0%;
+	right: 0%;
 	bottom: 0% !important;
 
 	margin: 0.5em;
 }
-
-
 
 #img_view{
     display: flex;
@@ -383,4 +396,71 @@ button{
 	margin: 2rem;
 
     z-index: 8;
+}
+
+/* -------------------- */
+/* Danger Zone          */
+/* -------------------- */
+
+.danger-zone{
+    display: flex;
+    flex-direction: row;
+
+    justify-content: space-between;
+    align-items: center;
+
+    gap: 2em;
+
+    margin: 2em;
+    padding: 1.5em 2em;
+
+    border: 1px solid var(--red);
+    border-radius: 0.5em;
+}
+
+.danger-zone h2{
+    margin: 0 0 0.25em 0;
+}
+
+.danger-zone p{
+    margin: 0;
+    color: var(--placeholder-clr);
+}
+
+/* -------------------- */
+/* Confirm Modal        */
+/* -------------------- */
+
+.confirm-modal{
+    border: none;
+    border-radius: 0.5em;
+
+    padding: 0;
+
+    max-width: 30em;
+}
+
+.confirm-modal::backdrop{
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.confirm-content{
+    display: flex;
+    flex-direction: column;
+
+    gap: 1em;
+
+    padding: 2em;
+
+    background-color: var(--card-bg);
+    color: var(--text);
+}
+
+.confirm-actions{
+    display: flex;
+    flex-direction: row;
+
+    justify-content: flex-end;
+
+    gap: 1em;
 }
