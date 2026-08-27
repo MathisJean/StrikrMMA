@@ -1,9 +1,9 @@
 <head>
-    <link rel="stylesheet" href="/css/settings.css">
-    <script type="module" defer src="/js/settings.js"></script>
+	<link rel="stylesheet" href="/css/settings.css">
+	<script type="module" defer src="/js/settings.js"></script>
 
-    <link href="https://cdn.jsdelivr.net/npm/filepond@4.32.7/dist/filepond.min.css" rel="stylesheet" />
-    <link href="https://cdn.jsdelivr.net/npm/filepond-plugin-image-preview@4.6.11/dist/filepond-plugin-image-preview.min.css" rel="stylesheet" />
+	<link href="https://cdn.jsdelivr.net/npm/filepond@4.32.7/dist/filepond.min.css" rel="stylesheet" />
+	<link href="https://cdn.jsdelivr.net/npm/filepond-plugin-image-preview@4.6.11/dist/filepond-plugin-image-preview.min.css" rel="stylesheet" />
 </head>
 
 <script src="https://cdn.jsdelivr.net/npm/filepond-plugin-file-validate-type@1.2.9/dist/filepond-plugin-file-validate-type.min.js"></script>
@@ -17,188 +17,188 @@
 </style>
 
 <div class="settings-wrapper">
-    <!-- Main Content -->
-    <main class="content">
+	<!-- Main Content -->
+	<main class="content">
 
-        <!-- Profile Tab -->
-        <section id="profile-tab" class="tab-content active">
+		<!-- Profile Tab -->
+		<section id="profile-tab" class="tab-content active">
 			<header class="header">
 				<h1>SETTINGS</h1>
 
-				<label class="drop_area" data-group="profiles" data-field="profile_banner_url" data-initialImage="<%= profile.profile_banner_url || '' %>">
-                    <input type="file" name="profile_banner_url" class="filepond">
-                    <img id="img_view" src="/svg/image.svg" alt="Preview">
-                </label>
+				<label class="drop-area" data-group="profiles" data-field="profile_banner_url" data-initialImage="<%= profile.profile_banner_url || '' %>">
+					<input type="file" name="profile_banner_url" class="filepond">
+					<img id="img-view" src="/svg/image.svg" alt="Preview">
+				</label>
 			</header>
 
-            <!-- Basic Info -->
-            <form id="profile-form" class="section" action="upload/profile" method="POST" enctype="multipart/form-data">
-                <label class="drop_area" data-group="profiles" data-field="profile_picture_url" data-initialImage="<%= profile.profile_picture_url || '' %>">
-                    <input type="file" name="profile_pic_url" class="filepond">
-                    <img id="img_view" src="/svg/image.svg" alt="Preview">
-                </label>
+			<!-- Basic Info -->
+			<form id="profile-form" class="section" action="upload/profile" method="POST" enctype="multipart/form-data">
+				<label class="drop-area" data-group="profiles" data-field="profile_picture_url" data-initialImage="<%= profile.profile_picture_url || '' %>">
+					<input type="file" name="profile_pic_url" class="filepond">
+					<img id="img-view" src="/svg/image.svg" alt="Preview">
+				</label>
 
-                <div class="profile-info">
-                    <div>
-                        <label>
-                            NICKNAME
-                            <input type="text" name="nickname" class="profile-input" value="<%= profile.nickname %>" data-group="profiles" data-field="nickname">
-                        </label>
+				<div class="profile-info">
+					<div>
+						<label>
+							NICKNAME
+							<input type="text" name="nickname" class="profile-input" value="<%= profile.nickname %>" data-group="profiles" data-field="nickname">
+						</label>
 
-                        <label>
-                            HEIGHT
-                            <div class="height-input">
-                                <input type="number" name="height-feet" class="profile-input" value="<%= Math.floor(profile.height / 12) %>" data-group="profiles" data-field="height_feet">
-                                <span class="unit">ft</span>
-                            </div>
-                            
-                            <div class="height-input">
-                                <input type="number" name="height-inches" class="profile-input" value="<%= profile.height % 12 %>" data-group="profiles" data-field="height_inches">
-                                <span class="unit">in</span>
-                            </div>
-                        </label>
+						<label>
+							HEIGHT
+							<div class="height-input">
+								<input type="number" name="height-feet" class="profile-input" value="<%= Math.floor(profile.height / 12) %>" data-group="profiles" data-field="height_feet">
+								<span class="unit">ft</span>
+							</div>
 
-                        <label>
-                            STANCE
-                            <select name="stance" class="profile-input" data-group="profiles" data-field="stance">
-                                <option value="" disabled <%= !profile.stance ? 'selected' : '' %>>Select Stance</option>
-                                <% const stances = ['orthodox', 'southpaw', 'switch']; %>
-                                <% for(const stance of stances) { %>
-                                    <option value="<%= stance %>" <%= profile.stance === stance ? 'selected' : '' %>><%= stance %></option>
-                                <% } %>
-                            </select>                       
-                        </label>
+							<div class="height-input">
+								<input type="number" name="height-inches" class="profile-input" value="<%= profile.height % 12 %>" data-group="profiles" data-field="height_inches">
+								<span class="unit">in</span>
+							</div>
+						</label>
 
-                        <label>
-                            WALKOUT SONG
-                            <input type="text" name="walkout_song" class="profile-input" placeholder="Song" value="<%= profile.walkout_song %>" data-group="profiles" data-field="walkout_song">
-                            <input type="text" name="walkout_song_artist" class="profile-input" placeholder="Artist" value="<%= profile.walkout_song_artist %>" data-group="profiles" data-field="walkout_song_artist">
-                        </label>
+						<label>
+							STANCE
+							<select name="stance" class="profile-input" data-group="profiles" data-field="stance">
+								<option value="" disabled <%= !profile.stance ? 'selected' : '' %>>Select Stance</option>
+								<% const stances = ['orthodox', 'southpaw', 'switch']; %>
+								<% for(const stance of stances) { %>
+									<option value="<%= stance %>" <%= profile.stance === stance ? 'selected' : '' %>><%= stance %></option>
+								<% } %>
+							</select>
+						</label>
 
-                        <label>
-                            WEIGHT CLASSES
-                            <div class="weight-container">
-                                <% for (let i = 0; i < 3; i++) { %>
-                                    <% const current_val = (badges.weight_classes && badges.weight_classes[i]) ? `${badges.weight_classes[i].name}-${badges.weight_classes[i].gender}` : ''; %>
-                                    <div class="weight_class">
-                                        <select name="weight_class_<%= i + 1 %>" class="profile-input" data-group="profile_weight_classes" data-field="name" data-index="<%= i %>">
-                                            <option value="" <%= !current_val ? 'selected' : '' %>>Select Weight Class</option>
-                                            <% for(const wc of weight_classes) { %>
-                                                <% const wc_val = `${wc.name}-${wc.gender}`; %>
-                                                <option value="<%= wc.name %>-<%= wc.gender %>" <%= current_val === wc_val ? 'selected' : '' %>>
-                                                    <%= wc.name %> (<%= wc.gender %>)
-                                                </option>  
-                                            <% } %>
-                                        </select>
-                                    </div>
-                                <% } %>
-                            </div>
-                        </label>
-                    </div>
-                    
-                    <!-- Contacts -->
-                    <div>
-                        <label>
-                            MARTIAL ARTS
-                            <div class="martial-arts-container">
-                                <% for (let i = 0; i < 3; i++) { %>
-                                    <% const current_val = (badges.martial_arts && badges.martial_arts[i]) ? `${badges.martial_arts[i].name}` : ''; %>
-                                    <div class="martial_art">
-                                        <select name="martial_art_<%= i + 1 %>" class="profile-input" data-group="profile_martial_arts" data-field="name" data-index="<%= i %>">
-                                            <option value="" <%= !current_val ? 'selected' : '' %>>Select Martial Art</option>
-                                            <% for(const ma of martial_arts) { %>
-                                                <% const ma_val = `${ma.name}`; %>
-                                                <option value="<%= ma.name %>" <%= current_val === ma_val ? 'selected' : '' %>>
-                                                    <%= ma.name %>
-                                                </option>  
-                                            <% } %>
-                                        </select>
-                                    </div>
-                                <% } %>
-                            </div>
-                        </label>
-                        
-                        <!-- TAGS -->
-                        <label>
-                            TAGS
-                            <div class="tags-container">
-                                <% for(let i = 0; i < 3; i++) { %>
-                                    <div class="settings-input-wrapper tag">
-                                        <input type="text" name="tag_<%= i + 1 %>" class="profile-input" maxlength="30" value="<%= tags[i]?.tag_text %>" data-group="tags" data-field="tag_text" data-index="<%= i %>">
-                                        <span class="suffix">0 / 30</span>
-                                    </div>
-                                <% } %>
-                            </div>
-                        </label>
+						<label>
+							WALKOUT SONG
+							<input type="text" name="walkout_song" class="profile-input" placeholder="Song" value="<%= profile.walkout_song %>" data-group="profiles" data-field="walkout_song">
+							<input type="text" name="walkout_song_artist" class="profile-input" placeholder="Artist" value="<%= profile.walkout_song_artist %>" data-group="profiles" data-field="walkout_song_artist">
+						</label>
 
-                        <label>
-                            INSTAGRAM URL
-                            <div class="settings-input-wrapper">
-                                <span class="prefix">instagram.com/</span>
-                                <input type="text" name="instagram_url" class="profile-input" placeholder="username" value="<%= profile.instagram_url %>" data-group="profiles" data-field="instagram_url">
-                            </div>
-                        </label>
+						<label>
+							WEIGHT CLASSES
+							<div class="weight-container">
+								<% for (let i = 0; i < 3; i++) { %>
+									<% const current_val = (badges.weight_classes && badges.weight_classes[i]) ? `${badges.weight_classes[i].name}-${badges.weight_classes[i].gender}` : ''; %>
+									<div class="weight-class">
+										<select name="weight_class_<%= i + 1 %>" class="profile-input" data-group="profile_weight_classes" data-field="name" data-index="<%= i %>">
+											<option value="" <%= !current_val ? 'selected' : '' %>>Select Weight Class</option>
+											<% for(const wc of weight_classes) { %>
+												<% const wc_val = `${wc.name}-${wc.gender}`; %>
+												<option value="<%= wc.name %>-<%= wc.gender %>" <%= current_val === wc_val ? 'selected' : '' %>>
+													<%= wc.name %> (<%= wc.gender %>)
+												</option>
+											<% } %>
+										</select>
+									</div>
+								<% } %>
+							</div>
+						</label>
+					</div>
 
-                        <label>
-                            TEAM
-                            <input type="text" name="team" class="profile-input" value="<%= profile.team %>" data-group="profiles" data-field="team">
-                        </label>
+					<!-- Contacts -->
+					<div>
+						<label>
+							MARTIAL ARTS
+							<div class="martial-arts-container">
+								<% for (let i = 0; i < 3; i++) { %>
+									<% const current_val = (badges.martial_arts && badges.martial_arts[i]) ? `${badges.martial_arts[i].name}` : ''; %>
+									<div class="martial-art">
+										<select name="martial_art_<%= i + 1 %>" class="profile-input" data-group="profile_martial_arts" data-field="name" data-index="<%= i %>">
+											<option value="" <%= !current_val ? 'selected' : '' %>>Select Martial Art</option>
+											<% for(const ma of martial_arts) { %>
+												<% const ma_val = `${ma.name}`; %>
+												<option value="<%= ma.name %>" <%= current_val === ma_val ? 'selected' : '' %>>
+													<%= ma.name %>
+												</option>
+											<% } %>
+										</select>
+									</div>
+								<% } %>
+							</div>
+						</label>
 
-                        <label>
-                            HOMETOWN
-                            <input type="text" name="hometown" class="profile-input" value="<%= profile.hometown %>" data-group="profiles" data-field="hometown">
-                        </label>
-                    </div>
+						<!-- TAGS -->
+						<label>
+							TAGS
+							<div class="tags-container">
+								<% for(let i = 0; i < 3; i++) { %>
+									<div class="settings-input-wrapper tag">
+										<input type="text" name="tag_<%= i + 1 %>" class="profile-input" maxlength="30" value="<%= tags[i]?.tag_text %>" data-group="tags" data-field="tag_text" data-index="<%= i %>">
+										<span class="suffix">0 / 30</span>
+									</div>
+								<% } %>
+							</div>
+						</label>
 
-                    <!-- Record -->
-                    <div>
-                        <label>WINS<input type="number" name="wins" class="profile-input" value="<%= record.wins %>" min="0" data-group="records" data-field="wins"></label>
-                        <label>LOSSES<input type="number" name="losses" class="profile-input" value="<%= record.losses %>" min="0" data-group="records" data-field="losses"></label>
-                        <label>DRAWS<input type="number" name="draws" class="profile-input" value="<%= record.draws %>" min="0" data-group="records" data-field="draws"></label>
-                        <label>NO CONTESTS<input type="number" name="no_contests" class="profile-input" value="<%= record.no_contests %>" min="0" data-group="records" data-field="no_contests"></label>
-                        <label>KO / TKO<input type="number" name="ko" class="profile-input" value="<%= record.ko %>" min="0" data-group="records" data-field="ko"></label>
-                        <label>SUB<input type="number" name="submissions" class="profile-input" value="<%= record.submissions %>" min="0" data-group="records" data-field="submissions"></label>
-                    </div>
+						<label>
+							INSTAGRAM URL
+							<div class="settings-input-wrapper">
+								<span class="prefix">instagram.com/</span>
+								<input type="text" name="instagram_url" class="profile-input" placeholder="username" value="<%= profile.instagram_url %>" data-group="profiles" data-field="instagram_url">
+							</div>
+						</label>
 
-                    <!-- Awards -->
-                    <div class="awards-container">
-                        <% for(let i = 0; i < 4; i++) { %>
-                            <label>
-                                AWARD <%= i + 1 %>
-                                <input type="text" name="title_<%= i + 1 %>" placeholder="Title" class="profile-input" value="<%= awards[i]?.title %>" data-group="awards" data-field="title" data-index="<%= i %>">
-                                <input type="text" name="description_<%= i + 1 %>" placeholder="Description" class="profile-input" value="<%= awards[i]?.description %>" data-group="awards" data-field="description" data-index="<%= i %>">
-                            </label>
-                        <% } %>
-                    </div>
-                </div>
+						<label>
+							TEAM
+							<input type="text" name="team" class="profile-input" value="<%= profile.team %>" data-group="profiles" data-field="team">
+						</label>
 
-                <!-- Form Submit -->
-                <button type="submit" id="save-btn" class="<%= corner == 'red' ? 'solid-btn' : 'solid2-btn' %>">SAVE</button>
-            </form>
+						<label>
+							HOMETOWN
+							<input type="text" name="hometown" class="profile-input" value="<%= profile.hometown %>" data-group="profiles" data-field="hometown">
+						</label>
+					</div>
 
-            <!-- Danger Zone -->
-            <div class="danger-zone">
-                <div>
-                    <h2>DELETE ACCOUNT</h2>
-                    <p>Permanently delete your account, profile, and all associated data. This cannot be undone.</p>
-                </div>
+					<!-- Record -->
+					<div>
+						<label>WINS<input type="number" name="wins" class="profile-input" value="<%= record.wins %>" min="0" data-group="records" data-field="wins"></label>
+						<label>LOSSES<input type="number" name="losses" class="profile-input" value="<%= record.losses %>" min="0" data-group="records" data-field="losses"></label>
+						<label>DRAWS<input type="number" name="draws" class="profile-input" value="<%= record.draws %>" min="0" data-group="records" data-field="draws"></label>
+						<label>NO CONTESTS<input type="number" name="no_contests" class="profile-input" value="<%= record.no_contests %>" min="0" data-group="records" data-field="no_contests"></label>
+						<label>KO / TKO<input type="number" name="ko" class="profile-input" value="<%= record.ko %>" min="0" data-group="records" data-field="ko"></label>
+						<label>SUB<input type="number" name="submissions" class="profile-input" value="<%= record.submissions %>" min="0" data-group="records" data-field="submissions"></label>
+					</div>
 
-                <button type="button" id="delete-account-btn" class="solid-btn">DELETE ACCOUNT</button>
-            </div>
-        </section>
-    </main>
+					<!-- Awards -->
+					<div class="awards-container">
+						<% for(let i = 0; i < 4; i++) { %>
+							<label>
+								AWARD <%= i + 1 %>
+								<input type="text" name="title_<%= i + 1 %>" placeholder="Title" class="profile-input" value="<%= awards[i]?.title %>" data-group="awards" data-field="title" data-index="<%= i %>">
+								<input type="text" name="description_<%= i + 1 %>" placeholder="Description" class="profile-input" value="<%= awards[i]?.description %>" data-group="awards" data-field="description" data-index="<%= i %>">
+							</label>
+						<% } %>
+					</div>
+				</div>
+
+				<!-- Form Submit -->
+				<button type="submit" id="save-btn" class="<%= corner == 'red' ? 'solid-btn' : 'solid2-btn' %>">SAVE</button>
+			</form>
+
+			<!-- Danger Zone -->
+			<div class="danger-zone">
+				<div>
+					<h2>DELETE ACCOUNT</h2>
+					<p>Permanently delete your account, profile, and all associated data. This cannot be undone.</p>
+				</div>
+
+				<button type="button" id="delete-account-btn" class="solid-btn">DELETE ACCOUNT</button>
+			</div>
+		</section>
+	</main>
 </div>
 
 <dialog id="delete-account-dialog" class="confirm-modal">
-    <div class="confirm-content">
-        <h3>Delete Account</h3>
-        <p>This will permanently delete your account, profile, and all associated data. This action cannot be undone.</p>
+	<div class="confirm-content">
+		<h3>Delete Account</h3>
+		<p>This will permanently delete your account, profile, and all associated data. This action cannot be undone.</p>
 
-        <div class="confirm-actions">
-            <button type="button" id="cancel-delete-btn" class="solid2-btn">CANCEL</button>
-            <button type="button" id="confirm-delete-btn" class="solid-btn">DELETE MY ACCOUNT</button>
-        </div>
-    </div>
+		<div class="confirm-actions">
+			<button type="button" id="cancel-delete-btn" class="solid2-btn">CANCEL</button>
+			<button type="button" id="confirm-delete-btn" class="solid-btn">DELETE MY ACCOUNT</button>
+		</div>
+	</div>
 </dialog>
 
 <!-- Initialized FilePond after DOM nodes are parsed -->
@@ -231,24 +231,24 @@
 		profile_martial_arts: <%- JSON.stringify((badges.martial_arts || []).map(m => ({ name: m.name }))) %>
 	};
 
-    document.addEventListener('DOMContentLoaded', () => {
-        FilePond.registerPlugin(
-            FilePondPluginFileValidateType,
-            FilePondPluginImagePreview
-        );
+	document.addEventListener('DOMContentLoaded', () => {
+		FilePond.registerPlugin(
+			FilePondPluginFileValidateType,
+			FilePondPluginImagePreview
+		);
 
-        FilePond.create(document.querySelector('.filepond'), {
-            allowMultiple: false,
-            acceptedFileTypes: ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/heic'],
-            storeAsFile: true,
-            files: [
-                <% if(profile && profile.avatar_url){ %>
-                { 
-                    source: '<%= profile.avatar_url %>', 
-                    options: { type: 'local' } 
-                }
-                <% } %>
-            ]
-        });
-    });
+		FilePond.create(document.querySelector('.filepond'), {
+			allowMultiple: false,
+			acceptedFileTypes: ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/heic'],
+			storeAsFile: true,
+			files: [
+				<% if(profile && profile.avatar_url){ %>
+				{
+					source: '<%= profile.avatar_url %>',
+					options: { type: 'local' }
+				}
+				<% } %>
+			]
+		});
+	});
 </script>

@@ -1,36 +1,51 @@
 
 //Set up libraries
-const { fs, path, express, pool } = require('../libs/requirements');
+const { fs, path, express, pool } = require("../libs/requirements");
 const router = express.Router()
 
 //Setup Router
-router.get("/", async (req, res) => { 
+
+/**
+ * GET /
+ * Renders the athletes landing page.
+ * @param {import("express").Request} req - Express request object.
+ * @param {import("express").Response} res - Express response object.
+ * @returns {Promise<void>}
+ */
+router.get("/", async(req, res) => {
 	res.render("profile", {
 		layout: "layout",
-		title: "Strikr | Athletes"
+		title: "Athletes"
 	});
 });
 
-router.get("/:username/settings", async (req, res) => {
+/**
+ * GET /:username/settings
+ * Renders the owner-only settings page for an athlete's profile.
+ * @param {import("express").Request} req - Express request object. Expects `username` route param.
+ * @param {import("express").Response} res - Express response object.
+ * @returns {Promise<void>}
+ */
+router.get("/:username/settings", async(req, res) => {
 	if(!req.session.user_id){
 		return res.status(401).json({ error: "You must be logged in" });
 	}
 
 	const username = req.params.username;
-	
-	const users = await pool.query("SELECT * FROM users WHERE username = $1", [username]);
-	
+
+	const users = await pool.query(`SELECT * FROM users WHERE username = $1`, [username]);
+
 	if(users.rows.length === 0){
 		return res.status(404).json({ error: "Athlete not found" });
 	}
-	
+
 	const user = users.rows[0];
 
 	const is_owner = req.session.user_id === user.id;
 
 	if(!is_owner) return res.status(403).send("You do not have permission to edit this profile");
 
-	const profiles = await pool.query("SELECT * FROM profiles WHERE user_id = $1 ORDER BY created_at ASC", [user.id]);
+	const profiles = await pool.query(`SELECT * FROM profiles WHERE user_id = $1 ORDER BY created_at ASC`, [user.id]);
 
 	if(profiles.rows.length === 0){
 		return res.status(404).json({ error: "Athlete not found" });
@@ -38,7 +53,7 @@ router.get("/:username/settings", async (req, res) => {
 
 	const profile = profiles.rows[0];
 
-	const tags = await pool.query("SELECT * FROM tags WHERE profile_id = $1 ORDER BY sort_order ASC", [profile.id]);
+	const tags = await pool.query(`SELECT * FROM tags WHERE profile_id = $1 ORDER BY sort_order ASC`, [profile.id]);
 
 	const badges_result = await pool.query(`
 		SELECT
@@ -67,10 +82,10 @@ router.get("/:username/settings", async (req, res) => {
 
 	const badges = badges_result.rows[0];
 
-	const weight_classes = await pool.query("SELECT * FROM weight_classes ORDER BY sort_order ASC");
-	const martial_arts = await pool.query("SELECT * FROM martial_arts ORDER BY id ASC");
+	const weight_classes = await pool.query(`SELECT * FROM weight_classes ORDER BY sort_order ASC`);
+	const martial_arts = await pool.query(`SELECT * FROM martial_arts ORDER BY id ASC`);
 
-	const records = await pool.query("SELECT * FROM records WHERE profile_id = $1 ORDER BY updated_at ASC", [profile.id]);
+	const records = await pool.query(`SELECT * FROM records WHERE profile_id = $1 ORDER BY updated_at ASC`, [profile.id]);
 	let record = {};
 
 	if(records.rows.length != 0){
@@ -88,14 +103,14 @@ router.get("/:username/settings", async (req, res) => {
 		record["total_fights"] = 0;
 	}
 
-	const awards = await pool.query("SELECT * FROM awards WHERE profile_id = $1 ORDER BY date_earned DESC", [profile.id]);
-	//const highlights = await pool.query("SELECT * FROM highlights WHERE profile_id = $1 ORDER BY created_at ASC", [profile.id]);
-	
-	const nickname = profile.nickname? ` "${profile.nickname}" ` : " ";
+	const awards = await pool.query(`SELECT * FROM awards WHERE profile_id = $1 ORDER BY date_earned DESC`, [profile.id]);
+	//const highlights = await pool.query(`SELECT * FROM highlights WHERE profile_id = $1 ORDER BY created_at ASC`, [profile.id]);
+
+	const nickname = profile.nickname ? ` "${profile.nickname}" ` : " ";
 
 	res.render("settings", {
 		layout: "layout",
-		title: `Strikr | ${profile.first_name}${nickname}${profile.last_name}`,
+		title: `Settings`,
 		profile,
 		is_owner,
 		corner: user.corner,
@@ -109,18 +124,25 @@ router.get("/:username/settings", async (req, res) => {
 	});
 });
 
-router.get("/:username", async (req, res) => {
+/**
+ * GET /:username
+ * Renders the public profile page for an athlete.
+ * @param {import("express").Request} req - Express request object. Expects `username` route param.
+ * @param {import("express").Response} res - Express response object.
+ * @returns {Promise<void>}
+ */
+router.get("/:username", async(req, res) => {
 	const username = req.params.username;
-	
-	const users = await pool.query("SELECT * FROM users WHERE username = $1", [username]);
-	
+
+	const users = await pool.query(`SELECT * FROM users WHERE username = $1`, [username]);
+
 	if(users.rows.length === 0){
 		return res.status(404).json({ error: "Athlete not found" });
 	}
-	
+
 	const user = users.rows[0];
 
-	const profiles = await pool.query("SELECT * FROM profiles WHERE user_id = $1 ORDER BY created_at ASC", [user.id]);
+	const profiles = await pool.query(`SELECT * FROM profiles WHERE user_id = $1 ORDER BY created_at ASC`, [user.id]);
 
 	if(profiles.rows.length === 0){
 		return res.status(404).json({ error: "Athlete not found" });
@@ -128,8 +150,8 @@ router.get("/:username", async (req, res) => {
 
 	const profile = profiles.rows[0];
 
-	const tags = await pool.query("SELECT * FROM tags WHERE profile_id = $1 ORDER BY sort_order ASC", [profile.id]);
-	const weight = await pool.query("SELECT * FROM tags WHERE profile_id = $1 ORDER BY sort_order ASC", [profile.id]);
+	const tags = await pool.query(`SELECT * FROM tags WHERE profile_id = $1 ORDER BY sort_order ASC`, [profile.id]);
+	const weight = await pool.query(`SELECT * FROM tags WHERE profile_id = $1 ORDER BY sort_order ASC`, [profile.id]);
 
 	const badges_result = await pool.query(`
 		SELECT
@@ -158,7 +180,7 @@ router.get("/:username", async (req, res) => {
 
 	const badges = badges_result.rows[0];
 
-	const records = await pool.query("SELECT * FROM records WHERE profile_id = $1 ORDER BY updated_at ASC", [profile.id]);
+	const records = await pool.query(`SELECT * FROM records WHERE profile_id = $1 ORDER BY updated_at ASC`, [profile.id]);
 	let record = {};
 
 	if(records.rows.length != 0){
@@ -175,16 +197,16 @@ router.get("/:username", async (req, res) => {
 		record["total_fights"] = 0;
 	}
 
-	const awards = await pool.query("SELECT * FROM awards WHERE profile_id = $1 ORDER BY date_earned DESC", [profile.id]);
-	//const highlights = await pool.query("SELECT * FROM highlights WHERE profile_id = $1 ORDER BY created_at ASC", [profile.id]);
-	
+	const awards = await pool.query(`SELECT * FROM awards WHERE profile_id = $1 ORDER BY date_earned DESC`, [profile.id]);
+	//const highlights = await pool.query(`SELECT * FROM highlights WHERE profile_id = $1 ORDER BY created_at ASC`, [profile.id]);
+
 	const is_owner = req.session.user_id === profile.user_id;
 
-	const nickname = profile.nickname? ` "${profile.nickname}" ` : " ";
+	const nickname = profile.nickname ? ` "${profile.nickname}" ` : " ";
 
 	res.render("profile", {
 		layout: "layout",
-		title: `Strikr | ${profile.first_name}${nickname}${profile.last_name}`,
+		title: `${profile.first_name}${nickname}${profile.last_name}`,
 		profile,
 		is_owner,
 		corner: user.corner,

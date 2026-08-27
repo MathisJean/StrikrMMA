@@ -1,42 +1,43 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="light">
-    <head>
+	<head>
 		<!-- Fonts --> <!-- TODO: Remove unused -->
 		<link rel="preconnect" href="https://fonts.googleapis.com">
 		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 		<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Oswald:wght@500;600;700&display=swap" rel="stylesheet">
 
-        <meta charset="UTF-8">
-        <meta http-equiv="X-UA-Compatible" content="IE=edge">
-        <title><%= title %></title>
+		<meta charset="UTF-8">
+		<meta http-equiv="X-UA-Compatible" content="IE=edge">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title><%= `STRIKR | ${title}` %></title>
 
-        <!-- Global CSS -->
-        <link rel="stylesheet" href="/css/variables.css">
-        <link rel="stylesheet" href="/css/global.css">
-        <link rel="stylesheet" href="/css/inputs.css">
-        <link rel="stylesheet" href="/css/navbar.css">
+		<!-- Global CSS -->
+		<link rel="stylesheet" href="/css/variables.css">
+		<link rel="stylesheet" href="/css/global.css">
+		<link rel="stylesheet" href="/css/inputs.css">
+		<link rel="stylesheet" href="/css/navbar.css">
 
 		<meta property="og:title" content="STRIKR MMA" />
 		<meta property="og:description" content="The Link in Bio Made for Combat Athletes" />
 
 		<!-- TODO: Change -->
-		<meta property="og:image" content="https://www.mathisjean.me/img/this_is_me_4.jpg" /> 
+		<meta property="og:image" content="https://www.mathisjean.me/img/this_is_me_4.jpg" />
 		<meta property="og:url" content="https://www.mathisjean.me/error" />
 		<meta property="og:type" content="website" />
 
 		<meta name="twitter:card" content="summary_large_image" />
 		<meta name="twitter:title" content="STRIKR MMA" />
-		
+
 		<!-- TODO: Change -->
 		<meta name="twitter:description" content="The Link in Bio Made for Combat Athletes" />
 		<meta name="twitter:image" content="https://www.mathisjean.me/img/this_is_me_4.jpg" />
-    </head>
-    
-    <body>
-        <%- include("navbar") %>
+	</head>
 
-        <!-- Main page content -->
-        <%- body %>
+	<body>
+		<%- include("navbar") %>
+
+		<!-- Main page content -->
+		<%- body %>
 
 		<dialog id="error-dialog" class="error-modal">
 			<div class="error-content">
@@ -45,11 +46,11 @@
 			</div>
 		</dialog>
 
-        <!-- Global JS -->
-        <script>
+		<!-- Global JS -->
+		<script>
 			const USER_ID = <%- (typeof profile !== 'undefined' && profile?.id) ? JSON.stringify(profile.id) : 'null' %>;
-        </script>
+		</script>
 
-        <script type="module" defer src="/js/global.js"></script>
-    </body>
+		<script type="module" defer src="/js/global.js"></script>
+	</body>
 </html>

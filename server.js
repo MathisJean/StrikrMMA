@@ -1,7 +1,7 @@
 
 //Set up libraries
 require('dotenv').config();
-const { http, os, fs, path, express, expressLayouts, pool, session, PgStore } = require('./libs/requirements');
+const { http, os, fs, path, express, expressLayouts, pool, session, PgStore, user_session } = require('./libs/requirements');
 const app = express();
 
 let host = "localhost";
@@ -42,21 +42,11 @@ app.use((req, res, next) => {
   next();
 });
 
+app.use(user_session);
+
 app.get('/', (req, res) => res.redirect(301, '/home'));
 app.use(express.json());
 app.set("view engine", "ejs");
-
-app.use(async (req, res, next) => {
-    if(req.session?.user_id) {
-        //Fetch current profile from DB or cache layer
-        const user = await pool.query(
-            "SELECT profile_picture_url FROM profiles WHERE user_id = $1", 
-            [req.session.user_id]
-        );
-        res.locals.current_user = user.rows[0] || null;
-    }
-    next();
-});
 
 //----Routers----//
 

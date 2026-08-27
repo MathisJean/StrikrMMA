@@ -1,33 +1,40 @@
 <nav class="navbar">
-    <div class="navbar-left">
-		<a href="/home">
-			<img src="/logo/strikr_logo_no_margin.png">
-		</a>
-    </div>
-    
-    <div class="navbar-middle">
-		<div class="search-container">
-			<form autocomplete="off">
-				<div class="input-wrapper">
-					<button type="button" id="search-icon"><img src="/svg/search.svg" onclick="{document.getElementById('search-bar').focus()}"></button>
-					<input type="search" name="search" id="search-bar" placeholder="Search for athletes">
-					<button type="button" id="search-clear"><img src="/svg/close.svg"></button>
+			<div class="navbar-left">
+				<a href="/home">
+					<img src="/logo/strikr_logo_no_margin.png">
+				</a>
+			</div>
+
+			<div class="navbar-middle">
+				<div class="search-container">
+					<form autocomplete="off">
+						<div class="input-wrapper">
+							<button type="button" id="search-icon"><img src="/svg/search.svg" onclick="{document.getElementById('search-bar').focus()}"></button>
+							<input type="search" name="search" id="search-bar" placeholder="Search for athletes">
+							<button type="button" id="search-clear"><img src="/svg/close.svg"></button>
+						</div>
+					</form>
 				</div>
-			</form>
-		</div>
-    </div>
+			</div>
+			
+			<div class="navbar-right">
+				<!-- <ul class="navbar-navigation"></ul> -->
+				<button type="button" id="mobile-search-btn" class="navbar-icon-btn" aria-label="Search">
+					<img src="/svg/search.svg">
+				</button>
 
-    <div class="navbar-right">
-        <!-- <ul class="navbar-navigation"></ul> -->
+				<% if(user){ %>
+				<a id="profile-btn" class="btn" href="<%= user.username ? `/u/${user.username.toLowerCase()}` : '' %>" style="background-image: <%= user.profile_picture_url ? `url(${user.profile_picture_url});` : 'url(/svg/profile_light.svg);' %>"></a>
+				<% } else{ %>
+				<a id="join-btn" class="solid-btn btn" href='/auth#login'>JOIN THE FIGHT</a>
+				<% } %>
+			</div>
 
-        <a id="profile_btn" class="btn" style="display: none; background-repeat: no-repeat; background-size: cover; background-position: center;"></a>
-        <a id="join_btn" class="solid-btn btn" href='/auth#login'>JOIN THE FIGHT</a>
-    </div>
+			<div class="search-backdrop" data-search-backdrop></div>
 
-	<section class="search-menu">
-		<div class="results"></div>
-		
-		<div class="pagination" style="opacity: 0;"></div>
-	</section>
+			<section class="search-menu">
+				<div class="results"></div>
 
-</nav> 
+				<div class="pagination" style="opacity: 0;"></div>
+			</section>
+		</nav>

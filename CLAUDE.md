@@ -5,7 +5,8 @@ Strikr is a dedicated link-in-bio web application built for combat sports athlet
 ## Code Style & Formatting
 
 ### JavaScript (Node.js & Express)
-- **Indentation:** 4 spaces (no tabs).
+- **Comments:** JSDoc
+- **Indentation:** tabs.
 - **Naming Conventions:**
   - `snake_case` for backend functions, parameters, database columns, and object keys (`update_simple_table`, `table_name`, `where_column`).
   - `SCREAMING_SNAKE_CASE` sparingly for important global constants.
@@ -18,17 +19,19 @@ Strikr is a dedicated link-in-bio web application built for combat sports athlet
 - **Data Coercion:** Explicit type casting using `Number()`, `parseInt(val, 10)`, or `Math.floor()`.
 
 ### HTML / EJS
-- **Indentation:** 4 spaces.
+- **Indentation:** tab.
+- **Naming:** `kebab-case` for css classes
 - **Attribute Styling:** Lowercase attribute names with double quotes (`class="profile-input"`, `type="text"`).
 - **Custom Attributes:** Use `data-*` attributes for JS-driven field mapping (`data-group="..."`, `data-field="..."`, `data-index="..."`).
 - **EJS Syntax:** Standard tag formatting (`<%= variable %>` with spaces inside delimiters).
 
 ### CSS
-- **Indentation:** 4 spaces.
+- **CSS Naming Policy:** Use kebab-case for all NEW CSS classes (`.profile-wrapper`, `.drop-area`). Do NOT bulk-rename legacy class names without explicit instructions to preserve JS DOM queries.
+- **Indentation:** tab.
 - **Naming Conventions:** `kebab-case` for classes (`.settings-wrapper`, `.profile-input`) and IDs (`#corner-radio`).
 - **Custom Properties:** Use global CSS variables for recurring design tokens (`var(--red)`, `var(--blue)`, `var(--main-txt)`).
 - **Formatting Rules:**
-  - Standard CSS formatting with a single space before opening braces `{`.
+  - Standard CSS formatting with no space before opening braces `{`.
   - Prefer flexbox for layouts (`display: flex; flex-direction: row;`).
   - Use logical positioning shorthand where applicable (`inset: 0;`).
 

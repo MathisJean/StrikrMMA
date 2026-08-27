@@ -1,21 +1,36 @@
 
 //Set up libraries
-const { fs, path, express, pool, bcrypt } = require('../libs/requirements');
+const { fs, path, express, pool, bcrypt } = require("../libs/requirements");
 const router = express.Router()
 
 //Setup Router
+
+/**
+ * GET /
+ * Renders the authentication page.
+ * @param {import("express").Request} req - Express request object.
+ * @param {import("express").Response} res - Express response object.
+ * @returns {void}
+ */
 router.get("/", (req, res) => {
 	res.render("auth", {
-		title: "Strikr | Authentication"
+		title: "Authentication"
 	});
 });
 
-router.post("/login", async (req, res) => {
+/**
+ * POST /login
+ * Authenticates a user by email and password and starts a session.
+ * @param {import("express").Request} req - Express request object. Expects `email` and `password` in the body.
+ * @param {import("express").Response} res - Express response object.
+ * @returns {Promise<void>}
+ */
+router.post("/login", async(req, res) => {
 	const { email, password } = req.body;
 
 	try{
 		const result = await pool.query(
-			'SELECT * FROM users WHERE email = $1',
+			`SELECT * FROM users WHERE email = $1`,
 			[email]
 		);
 
@@ -34,7 +49,7 @@ router.post("/login", async (req, res) => {
 		//Save user ID in session
 		req.session.user_id = user.id;
 
-		return res.status(200).json({ username: user.username});
+		return res.status(200).json({ username: user.username });
 	}
 	catch(err){
 		console.error(err);
@@ -42,109 +57,120 @@ router.post("/login", async (req, res) => {
 	}
 });
 
-//Signup Post HTTP request
-router.get("/signup-availability", async (req, res) => {
+/**
+ * GET /signup-availability
+ * Checks whether a username and/or email are already registered.
+ * @param {import("express").Request} req - Express request object. Expects `username` and/or `email` in the query string.
+ * @param {import("express").Response} res - Express response object.
+ * @returns {Promise<void>}
+ */
+router.get("/signup-availability", async(req, res) => {
 	try{
-        const { username, email } = req.query;
+		const { username, email } = req.query;
 
-        let username_taken = false;
-        let email_taken = false;
+		let username_taken = false;
+		let email_taken = false;
 
-        if(username){
-            const user_check = await pool.query(
-                'SELECT EXISTS(SELECT 1 FROM users WHERE LOWER(username) = LOWER($1))',
-                [username.trim()]
-            );
-            username_taken = user_check.rows[0].exists;
-        }
+		if(username){
+			const user_check = await pool.query(
+				`SELECT EXISTS(SELECT 1 FROM users WHERE LOWER(username) = LOWER($1))`,
+				[username.trim()]
+			);
+			username_taken = user_check.rows[0].exists;
+		}
 
-        if(email){
-            const email_check = await pool.query(
-                'SELECT EXISTS(SELECT 1 FROM users WHERE LOWER(email) = LOWER($1))',
-                [email.trim()]
-            );
-            email_taken = email_check.rows[0].exists;
-        }
+		if(email){
+			const email_check = await pool.query(
+				`SELECT EXISTS(SELECT 1 FROM users WHERE LOWER(email) = LOWER($1))`,
+				[email.trim()]
+			);
+			email_taken = email_check.rows[0].exists;
+		}
 
-        res.status(200).json({
-            username_available: !username_taken,
-            email_available: !email_taken
-        });
-
-    }
+		res.status(200).json({
+			username_available: !username_taken,
+			email_available: !email_taken
+		});
+	}
 	catch(err){
-        res.status(500).json({ error: "Failed to check availability" });
-    }
+		res.status(500).json({ error: "Failed to check availability" });
+	}
 });
 
-router.post("/signup", async (req, res) => {
-  const { corner, first_name, last_name, username, email, password } = req.body;
+/**
+ * POST /signup
+ * Creates a new user, profile, and blank record inside a transaction, then starts a session.
+ * @param {import("express").Request} req - Express request object. Expects `corner`, `first_name`, `last_name`, `username`, `email`, and `password` in the body.
+ * @param {import("express").Response} res - Express response object.
+ * @returns {Promise<void>}
+ */
+router.post("/signup", async(req, res) => {
+	const { corner, first_name, last_name, username, email, password } = req.body;
 
-	const salt_rounds = 10; 
+	const salt_rounds = 10;
 	const hashed_password = await bcrypt.hash(password, salt_rounds);
 
-  try{
-    const email_result = await pool.query(
-      `SELECT * FROM users WHERE email = $1`,
-      [email]
-    );
+	try{
+		const email_result = await pool.query(
+			`SELECT * FROM users WHERE email = $1`,
+			[email]
+		);
 
-    if(email_result.rows.length > 0){
-      return res.status(409).json({ error: "Email already registered" });
-    }
+		if(email_result.rows.length > 0){
+			return res.status(409).json({ error: "Email already registered" });
+		}
 
-    const username_result = await pool.query(
-      `SELECT * FROM users WHERE username = $1`,
-      [username]
-    );
+		const username_result = await pool.query(
+			`SELECT * FROM users WHERE username = $1`,
+			[username]
+		);
 
-    if(username_result.rows.length > 0){
-      return res.status(409).json({ error: "Username already registered" });
-    }
+		if(username_result.rows.length > 0){
+			return res.status(409).json({ error: "Username already registered" });
+		}
 
-	//Define incoming data
-    const client = await pool.connect();
+		//Define incoming data
+		const client = await pool.connect();
 
-    try{
-        await client.query("BEGIN");
+		try{
+			await client.query("BEGIN");
 
-        const userResult = await client.query(
-            `INSERT INTO users (username, email, password_hash, corner)
-             VALUES ($1, $2, $3, $4) RETURNING id`,
-            [username, email, hashed_password, corner]
-        );
-        const userId = userResult.rows[0].id;
+			const user_result = await client.query(
+				`INSERT INTO users (username, email, password_hash, corner)
+				 VALUES ($1, $2, $3, $4) RETURNING id`,
+				[username, email, hashed_password, corner]
+			);
+			const user_id = user_result.rows[0].id;
 
-        const profileResult = await client.query(
-            `INSERT INTO profiles (user_id, first_name, last_name)
-             VALUES ($1, $2, $3) RETURNING id`,
-            [userId, first_name, last_name]
-        );
-        const profileId = profileResult.rows[0].id;
+			const profile_result = await client.query(
+				`INSERT INTO profiles (user_id, first_name, last_name)
+				 VALUES ($1, $2, $3) RETURNING id`,
+				[user_id, first_name, last_name]
+			);
+			const profile_id = profile_result.rows[0].id;
 
-        await client.query(
-            `INSERT INTO records (profile_id, wins, losses, draws, no_contests)
-             VALUES ($1, 0, 0, 0, 0)`,
-            [profileId]
-        );
+			await client.query(
+				`INSERT INTO records (profile_id, wins, losses, draws, no_contests)
+				 VALUES ($1, 0, 0, 0, 0)`,
+				[profile_id]
+			);
 
-        await client.query("COMMIT");
-        req.session.user_id = userId;
-        return res.status(201).json({ success: true, id: userId });
-
-    }
+			await client.query("COMMIT");
+			req.session.user_id = user_id;
+			return res.status(201).json({ success: true, id: user_id });
+		}
+		catch(err){
+			await client.query("ROLLBACK");
+			console.error("Registration failed:", err);
+			return res.status(500).json({ error: "Server error" });
+		}
+		finally{
+			client.release();
+		}
+	}
 	catch(err){
-        await client.query("ROLLBACK");
-        console.error("Registration failed:", err);
-        return res.status(500).json({ error: "Server error" });
-    }
-	finally{
-        client.release();
-    }
-  }
-  catch(err){
-    return res.status(500).json({ error: "Server error" });
-  }
+		return res.status(500).json({ error: "Server error" });
+	}
 });
 
 //Export router to server file
