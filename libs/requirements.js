@@ -20,6 +20,8 @@ const { v2: cloudinary } = require('cloudinary');
 
 const user_session = require('./middleware/user_session.js');
 
+const mailer = require('./mailer.js');
+
 //Configure Cloudinary
 cloudinary.config({
 	cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -46,5 +48,7 @@ module.exports = {
 
   cloudinary,
 
-  user_session
+  user_session,
+
+  mailer
 };

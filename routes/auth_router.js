@@ -6,6 +6,22 @@ const router = express.Router()
 //Setup Router
 
 /**
+ * Middleware requiring an authenticated session with is_admin set.
+ * @param {import("express").Request} req - Express request object.
+ * @param {import("express").Response} res - Express response object.
+ * @param {import("express").NextFunction} next - Express next function.
+ * @returns {void}
+ */
+function require_no_session(req, res, next){
+	if(req.session?.user_id){
+		return res.redirect("/home");
+	}
+	next();
+}
+
+router.use(require_no_session);
+
+/**
  * GET /
  * Renders the authentication page.
  * @param {import("express").Request} req - Express request object.
@@ -46,8 +62,9 @@ router.post("/login", async(req, res) => {
 			return res.status(401).json({ error: "Invalid credentials" });
 		}
 
-		//Save user ID in session
+		//Save user ID and admin status in session
 		req.session.user_id = user.id;
+		req.session.is_admin = user.is_admin;
 
 		return res.status(200).json({ username: user.username });
 	}
@@ -157,6 +174,7 @@ router.post("/signup", async(req, res) => {
 
 			await client.query("COMMIT");
 			req.session.user_id = user_id;
+			req.session.is_admin = false;
 			return res.status(201).json({ success: true, id: user_id });
 		}
 		catch(err){

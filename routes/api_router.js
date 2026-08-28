@@ -281,13 +281,22 @@ router.patch("/update/profile", upload.any(), async(req, res) => {
 		const data = JSON.parse(req.body.json);
 		const id = data.id;
 
-		const profiles = await client.query(
-			`SELECT id FROM profiles WHERE id = $1 AND user_id = $2`,
-			[id, req.session.user_id]
-		);
+		if(req.session.is_admin){
+			const profiles = await client.query(`SELECT id FROM profiles WHERE id = $1`, [id]);
 
-		if(profiles.rows.length === 0){
-			return res.status(403).json({ error: "Not authorized to edit this profile" });
+			if(profiles.rows.length === 0){
+				return res.status(404).json({ error: "Profile not found" });
+			}
+		}
+		else{
+			const profiles = await client.query(
+				`SELECT id FROM profiles WHERE id = $1 AND user_id = $2`,
+				[id, req.session.user_id]
+			);
+
+			if(profiles.rows.length === 0){
+				return res.status(403).json({ error: "Not authorized to edit this profile" });
+			}
 		}
 
 		const groups = Object.keys(data).filter(group => group !== "id");

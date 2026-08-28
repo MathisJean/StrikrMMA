@@ -11,11 +11,11 @@ let port = process.env.PORT || 3000;
 const networkInterfaces = os.networkInterfaces();
 
 for(const iface of Object.values(networkInterfaces)){
-  for(const ifaceInfo of iface){
-    if(ifaceInfo.family === "IPv4" && !ifaceInfo.internal){
-      host = ifaceInfo.address;
-    };
-  };
+	for(const ifaceInfo of iface){
+		if(ifaceInfo.family === "IPv4" && !ifaceInfo.internal){
+			host = ifaceInfo.address;
+		};
+	};
 };
 
 app.use(express.urlencoded({ limit: "10mb", extended: true }));
@@ -38,8 +38,8 @@ app.use(session({ //TODO: Change for HTTPS
 }));
 
 app.use((req, res, next) => {
-  res.locals.title = "FightLink"; // default title for all pages
-  next();
+	res.locals.title = "The link in bio for fighters"; // default title for all pages
+	next();
 });
 
 app.use(user_session);
@@ -66,9 +66,19 @@ app.use('/auth', auth_router);
 const athletes_router = require('./routes/athletes_router');
 app.use('/u', athletes_router);
 
+//Admin
+const admin_router = require('./routes/admin_router');
+app.use('/admin', admin_router);
+
+//Profile Claiming
+const claim_router = require('./routes/claim_router');
+app.use('/claim', claim_router);
+
 //Error
 app.use((req, res) => {
-  res.status(404).render("error");
+	res.status(404).render("error", {
+		title: "Error",
+	});
 });
 
 //-- Locals --//

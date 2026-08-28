@@ -1,0 +1,82 @@
+<head>
+	<link rel="stylesheet" href="/css/claim.css">
+	<link rel="stylesheet" href="/css/auth.css">
+</head>
+
+<script defer type="module" src="/js/claim.js"></script>
+
+<!-- Content -->
+<section class="main-section claim-section">
+	<div class="section-visual">
+		<div id="visual-claim">
+			<h1 class="visual-title">CLAIM YOUR</h1>
+			<h1 class="visual-title"><span>CORNER</span></h1>
+
+			<p class="visual-description">Every champion started in a corner nobody knew. Claim it now, defend it forever.</p>
+		</div>
+	</div>
+
+	<div class="claim-panel">
+		<% if(state === "ready") { %>
+			<form class="auth" id="claim-form" autocomplete="off" novalidate data-token="<%= token %>">
+				<h1 class="auth-title">CLAIM YOUR PROFILE</h1>
+				<p class="auth-description">Is this you, <%= profile.first_name %> <%= profile.last_name %>?</p>
+
+				<div class="auth-inputs">
+					<label class="auth-label" id="auth-corner">
+						CORNER
+						<div id="corner-radio">
+							<input type="radio" for="corner-radio" name="input-corner" value="red">
+							<input type="radio" for="corner-radio" name="input-corner" value="blue">
+						</div>
+					</label>
+
+					<label class="auth-label">
+						USERNAME
+						<div class="input-wrapper">
+							<span class="prefix">strikr.com/u/</span>
+							<input type="text" id="username-input" class="user-input" data-status="n" placeholder="johndoe50" autocomplete="username">
+							<span id="username-status" class="input-status"></span>
+						</div>
+					</label>
+
+					<label class="auth-label">
+						EMAIL
+						<div class="input-wrapper">
+							<input type="email" id="email-input" class="user-input" data-status="n" placeholder="johndoe@exemple.com" autocomplete="email">
+							<span id="email-status" class="input-status"></span>
+						</div>
+					</label>
+
+					<label class="auth-label">
+						PASSWORD
+						<div class="input-wrapper">
+							<input type="password" id="password-input" class="user-input" data-status="n" placeholder="··········" autocomplete="new-password" minlength="8">
+							<span id="password-status" class="input-status"></span>
+						</div>
+					</label>
+				</div>
+
+				<div class="auth-submit-wrap">
+					<button type="submit" id="claim-accept-btn" class="solid-btn">CLAIM</button>
+				</div>
+
+				<p class="auth-switch"><span id="claim-decline-btn">Decline this profile</span></p>
+			</form>
+		<% } else if(state === "already_claimed") { %>
+			<div class="auth claim-message">
+				<h1 class="auth-title">ALREADY CLAIMED</h1>
+				<p class="auth-description">This profile has already been claimed. If this is your account, <a href="/auth#login">log in</a> instead.</p>
+			</div>
+		<% } else { %>
+			<div class="auth claim-message">
+				<h1 class="auth-title">LINK NOT FOUND</h1>
+				<p class="auth-description">This link is invalid or is expired.</p>
+
+				<div class="auth-submit-wrap">
+					<p class="auth-switch"><a href="mailto:info@strikrmma.com">Contact us</a> if you believe this is a mistake.</p>
+				</div>
+			</div>
+		<% } %>
+	</div>
+</section>

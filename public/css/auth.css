@@ -39,7 +39,8 @@
 
 	padding: 1em 2em;
 
-	overflow: hidden;
+	overflow-y: auto;
+	overflow-x: hidden;
 
 	transition:
 		transform 400ms ease-in-out,
@@ -124,6 +125,9 @@
 }
 
 .auth-label{
+	display: flex;
+	flex-direction: column;
+
 	font-family: "Oswald", sans-serif;
 	font-size: 0.75em;
 	color: var(--placeholder-clr);
@@ -248,33 +252,25 @@
 	font-size: 0.75em;
 
 	margin-top: 2em;
+
+	text-decoration: none;
 }
 
+.auth-switch a,
 .auth-switch span{
 	position: relative;
 
 	color: black;
 	font-weight: 700;
 
+	text-decoration: underline;
+
 	transition: color 200ms ease;
 }
 
+.auth-switch a:hover,
 .auth-switch span:hover{
 	color: var(--blue);
-}
-
-.auth-switch span:after{
-	content: "";
-	display: block;
-	position: absolute;
-
-	width: 100%;
-	height: 1px;
-
-	bottom: 0%;
-	left: 0%;
-
-	background-color: black;
 }
 
 #auth-expiry{
@@ -356,13 +352,13 @@
 .visual-title span{
 	font-family: "Oswald", sans-serif;
 
-	color: var(--blue);
+	color: var(--red);
 
 	transition: color 400ms ease-in-out;
 }
 
-.visual-signup .visual-title span{
-	color: var(--red);
+.visual-login .visual-title span{
+	color: var(--blue);
 }
 
 .visual-description{
@@ -445,7 +441,7 @@
 		transform: translateX(-100%);
 	}
 
-	#visual-login, #visual-signup{
+	#visual-login, #visual-signup, #visual-claim{
 		display: flex;
 		flex-direction: column;
 

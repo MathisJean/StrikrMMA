@@ -140,13 +140,13 @@
 	height: 100%;
 }
 
-.input-wrapper{
+.nav-input-wrapper{
 	position: relative;
 	width: 80%;
 	height: 100%;
 }
 
-.input-wrapper input{
+.nav-input-wrapper input{
 	color: white;
 	background-color: var(--second-bg);
 

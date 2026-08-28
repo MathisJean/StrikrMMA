@@ -540,6 +540,14 @@
 		height: 100%;
 	}
 
+	.content-actions > *{
+		font-size: 1.25em;
+	}
+
+	.actions-wrapper{
+		justify-content: space-between;
+	}
+
 	.content-sections{
 		flex-direction: row;
 
@@ -554,10 +562,6 @@
 		min-width: 25%;
 		max-width: 30%;
 		width: auto;
-	}
-
-	.actions-wrapper{
-		justify-content: space-between;
 	}
 
 	.content-tags{

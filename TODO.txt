@@ -2,7 +2,7 @@
 [ ] Privacy Policy
 [ ] Clean Up Code + Comments
 [ ] Debugging
-[ ] Mobile UI
+[x] Mobile UI
 [ ] Settings Drop Area Fill Mode
 [x] Account Deletion
 [ ] Error Page (404 / 500)
@@ -14,6 +14,8 @@
 [ ] Accent Insensitive Search
 [ ] Content Reporting
 [ ] Password Reset
+[x] Account Claiming
+[ ] Admin Account Creation
 
 [ ] General Popup Class (Confirm Actions + Terms & Conditions)
 [ ] OpenGraph Meta Tags & SEO
