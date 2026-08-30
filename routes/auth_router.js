@@ -12,14 +12,18 @@ const router = express.Router()
  * @param {import("express").NextFunction} next - Express next function.
  * @returns {void}
  */
-function require_no_session(req, res, next){
+function require_guest(req, res, next){
 	if(req.session?.user_id){
+		if(res.locals.user.username){
+			return res.redirect(`/u/${res.locals.user.username}`);
+		}
+
 		return res.redirect("/home");
 	}
 	next();
 }
 
-router.use(require_no_session);
+router.use(require_guest);
 
 /**
  * GET /

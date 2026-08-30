@@ -74,11 +74,12 @@
 "users"	"created_at"	"timestamp with time zone"	"NO"	"now()"
 "users"	"claimed"	"boolean"	"NO"	"true"
 "users"	"is_admin"	"boolean"	"NO"	"false"
+"users"	"is_founding_member"	"boolean"	"NO"	"false"
+"users"	"is_beta_tester"	"boolean"	"NO"	"false"
 "weight_classes"	"id"	"integer"	"NO"	"nextval('weight_classes_id_seq'::regclass)"
 "weight_classes"	"name"	"character varying"	"NO"	
 "weight_classes"	"gender"	"character varying"	"NO"	
-"weight_classes"	"sort_order"	"integer"	"NO"	
-
+"weight_classes"	"sort_order"	"integer"	"NO"		
 
 "records"	"profile_id"	"profiles"	"CASCADE"
 "profile_weight_classes"	"profile_id"	"profiles"	"CASCADE"

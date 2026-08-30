@@ -1,7 +1,7 @@
 
 //Set up libraries
 require('dotenv').config();
-const { http, os, fs, path, express, expressLayouts, pool, session, PgStore, user_session } = require('./libs/requirements');
+const { http, os, fs, path, express, expressLayouts, pool, session, PgStore, user_session, mailer } = require('./libs/requirements');
 const app = express();
 
 let host = "localhost";
@@ -104,6 +104,16 @@ app.locals.calculate_year = (date) => {
 	const raw_date = new Date(date);
     return raw_date.getFullYear();;
 }
+
+//-- Scheduled Jobs --//
+
+//TODO: Convert to Cron job infrastructure
+const TOKEN_CLEANUP_INTERVAL_MS = 1000 * 60 * 60 * 24; //24 hours
+
+mailer.cleanup_expired_tokens().catch(err => console.error("Token cleanup failed:", err));
+setInterval(() => {
+	mailer.cleanup_expired_tokens().catch(err => console.error("Token cleanup failed:", err));
+}, TOKEN_CLEANUP_INTERVAL_MS);
 
 const http_server = http.createServer(app);
 

@@ -1,0 +1,83 @@
+<head>
+	<link rel="stylesheet" href="/css/settings.css">
+	<link rel="stylesheet" href="/css/admin.css">
+</head>
+
+<script defer type="module" src="/js/admin.js"></script>
+
+<div class="admin-wrapper">
+	<main class="admin-content">
+		<header class="admin-header">
+			<h1>ADMIN</h1>
+		</header>
+
+		<!-- Create Placeholder -->
+		<form id="create-form" class="section" autocomplete="off" novalidate>
+			<label>
+				FIRST NAME
+				<input type="text" id="create-first-name" class="profile-input" placeholder="John">
+			</label>
+
+			<label>
+				LAST NAME
+				<input type="text" id="create-last-name" class="profile-input" placeholder="Doe">
+			</label>
+
+			<fieldset class="badge-fieldset">
+				<legend>BADGE</legend>
+				<label class="badge-option"><input type="radio" name="badge" value="none" checked> None</label>
+				<label class="badge-option"><input type="radio" name="badge" value="founding_member"> Founding Member</label>
+				<label class="badge-option"><input type="radio" name="badge" value="beta_tester"> Beta Tester</label>
+			</fieldset>
+
+			<button type="submit" class="solid-btn">CREATE PLACEHOLDER</button>
+		</form>
+
+		<!-- Unclaimed Profiles -->
+		<section class="section">
+			<h2>UNCLAIMED PROFILES</h2>
+
+			<div class="placeholder-list">
+				<% if(placeholders.length === 0){ %>
+					<p class="empty-state">No unclaimed profiles yet.</p>
+				<% } %>
+
+				<% placeholders.forEach(p => { %>
+					<div class="placeholder-row" data-user-id="<%= p.user_id %>">
+						<div class="placeholder-info">
+							<span class="placeholder-name"><%= p.first_name %> <%= p.last_name %></span>
+							<span class="placeholder-username">@<%= p.username %></span>
+							<span class="placeholder-badge">
+								<%= p.is_founding_member ? "Founding Member" : (p.is_beta_tester ? "Beta Tester" : "—") %>
+							</span>
+							<span class="placeholder-date"><%= new Date(p.created_at).toLocaleDateString() %></span>
+						</div>
+
+						<div class="placeholder-actions">
+							<button type="button" class="solid2-btn generate-link-btn">GET LINK</button>
+							<a href="/u/<%= p.username %>/settings" class="solid2-btn edit-link">EDIT</a>
+							<button type="button" class="solid-btn delete-btn">DELETE</button>
+						</div>
+
+						<div class="claim-link-output" hidden>
+							<input type="text" class="claim-link-field user-input" readonly>
+							<button type="button" class="solid2-btn copy-link-btn">COPY</button>
+						</div>
+					</div>
+				<% }) %>
+			</div>
+		</section>
+	</main>
+</div>
+
+<dialog id="delete-placeholder-dialog" class="confirm-modal">
+	<div class="confirm-content">
+		<h3>Delete Placeholder</h3>
+		<p>This will permanently delete this unclaimed profile and all associated data. This action cannot be undone.</p>
+
+		<div class="confirm-actions">
+			<button type="button" id="cancel-delete-placeholder-btn" class="solid2-btn">CANCEL</button>
+			<button type="button" id="confirm-delete-placeholder-btn" class="solid-btn">DELETE</button>
+		</div>
+	</div>
+</dialog>

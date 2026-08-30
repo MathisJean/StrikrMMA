@@ -177,29 +177,33 @@
 			</form>
 
 			<!-- Danger Zone -->
-			<div class="danger-zone">
-				<div>
-					<h2>DELETE ACCOUNT</h2>
-					<p>Permanently delete your account, profile, and all associated data. This cannot be undone.</p>
-				</div>
+			<% if(!locals.is_admin_view){ %>
+				<div class="danger-zone">
+					<div>
+						<h2>DELETE ACCOUNT</h2>
+						<p>Permanently delete your account, profile, and all associated data. This cannot be undone.</p>
+					</div>
 
-				<button type="button" id="delete-account-btn" class="solid-btn">DELETE ACCOUNT</button>
-			</div>
+					<button type="button" id="delete-account-btn" class="solid-btn">DELETE ACCOUNT</button>
+				</div>
+			<% } %>
 		</section>
 	</main>
 </div>
 
-<dialog id="delete-account-dialog" class="confirm-modal">
-	<div class="confirm-content">
-		<h3>Delete Account</h3>
-		<p>This will permanently delete your account, profile, and all associated data. This action cannot be undone.</p>
+<% if(!locals.is_admin_view){ %>
+	<dialog id="delete-account-dialog" class="confirm-modal">
+		<div class="confirm-content">
+			<h3>Delete Account</h3>
+			<p>This will permanently delete your account, profile, and all associated data. This action cannot be undone.</p>
 
-		<div class="confirm-actions">
-			<button type="button" id="cancel-delete-btn" class="solid2-btn">CANCEL</button>
-			<button type="button" id="confirm-delete-btn" class="solid-btn">DELETE MY ACCOUNT</button>
+			<div class="confirm-actions">
+				<button type="button" id="cancel-delete-btn" class="solid2-btn">CANCEL</button>
+				<button type="button" id="confirm-delete-btn" class="solid-btn">DELETE MY ACCOUNT</button>
+			</div>
 		</div>
-	</div>
-</dialog>
+	</dialog>
+<% } %>
 
 <!-- Initialized FilePond after DOM nodes are parsed -->
 <script>

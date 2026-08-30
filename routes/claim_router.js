@@ -1,10 +1,30 @@
 
 //Set up libraries
-const { fs, path, express, pool, bcrypt } = require("../libs/requirements");
+const { fs, path, express, pool, bcrypt, delete_cloudinary_image } = require("../libs/requirements");
 const mailer = require("../libs/mailer.js");
 const router = express.Router();
 
 //Setup Router
+
+/**
+ * Middleware requiring an authenticated session with is_admin set.
+ * @param {import("express").Request} req - Express request object.
+ * @param {import("express").Response} res - Express response object.
+ * @param {import("express").NextFunction} next - Express next function.
+ * @returns {void}
+ */
+function require_guest(req, res, next){
+	if(req.session?.user_id){
+		if(res.locals.user.username){
+			return res.redirect(`/u/${res.locals.user.username}`);
+		}
+
+		return res.redirect("/home");
+	}
+	next();
+}
+
+router.use(require_guest);
 
 /**
  * GET /claim
@@ -145,9 +165,25 @@ router.post("/decline", async(req, res) => {
 			return res.status(404).json({ error: "This claim link is invalid or has expired" });
 		}
 
+		const profile = await client.query(
+			`SELECT id, profile_picture_url, profile_banner_url FROM profiles WHERE user_id = $1`,
+			[token_row.user_id]
+		);
+
+		const profile_id = profile.rows.map(p => p.id);
+
+		const highlights = profile_id.length > 0 ? await client.query(`SELECT video_url FROM highlights WHERE profile_id = ANY($1)`, [profile_id]) : { rows: [] };
+		const media_urls = [...profile.rows.flatMap(p => [p.profile_picture_url, p.profile_banner_url]), ...highlights.rows.map(h => h.video_url)].filter(Boolean);
+
 		await client.query(`DELETE FROM users WHERE id = $1 AND claimed = false`, [token_row.user_id]);
 
 		await client.query("COMMIT");
+
+		media_urls.forEach(url => {
+			delete_cloudinary_image(url).catch(err => {
+				console.error("Orphaned media cleanup failed:", err);
+			});
+		});
 		return res.status(200).json({ success: true });
 	}
 	catch(err){

@@ -217,7 +217,7 @@ async function decline_claim(){
 			<p class=\"auth-description\">Thanks for letting us know.</p>
 
 			<div class="auth-submit-wrap">
-				<p class="auth-switch"><a href="/home">Go home</a></p>
+				<a id="claim-home-btn" class="solid-btn" href="/home">GO HOME</a>
 			</div>
 		`;
 	}

@@ -10,7 +10,7 @@
 </style>
 
 <div class="page">
-	<section class="hero" style="--bg-mobile: url('<%= profile.profile_picture_url %>'); --bg-desktop: url('<%= profile.profile_banner_url %>');">
+	<section class="hero <%= profile?.profile_picture_url ? 'has-profile-picture' : '' %> <%= profile?.profile_banner_url ? 'has-banner-picture' : '' %>" style="--bg-mobile: url('<%= profile?.profile_picture_url %>'); --bg-desktop: url('<%= profile?.profile_banner_url %>');">
 		<% if(is_owner){ %>
 			<div class="owner-btn">
 				<a id="setting-btn" href="<%= user.username ? `/u/${user.username.toLowerCase()}/settings` : '' %>">
@@ -65,6 +65,22 @@
 					</svg>
 					<span>Verified</span>
 				</div>
+
+				<% if(is_beta_tester){ %>
+				<button aria-label="Instagram" class=<%= corner == "red" ? "solid-btn" : "solid2-btn" %> onclick="window.open('https://instagram.com/<%= profile.instagram_url %>', '_blank')">
+					<img src="/svg/test.svg">
+
+					<span>Beta Tester</span>
+				</button>
+				<% } %>
+
+				<% if(is_founding_member){ %>
+				<button aria-label="Instagram" class=<%= corner == "red" ? "solid-btn" : "solid2-btn" %> onclick="window.open('https://instagram.com/<%= profile.instagram_url %>', '_blank')">
+					<img src="/svg/star.svg">
+
+					<span>Founding Member</span>
+				</button>
+				<% } %>
 
 				<% if(profile.instagram_url){ %>
 				<button aria-label="Instagram" class=<%= corner == "red" ? "solid-btn" : "solid2-btn" %> onclick="window.open('https://instagram.com/<%= profile.instagram_url %>', '_blank')">

@@ -17,7 +17,7 @@ async function user_session(req, res, next){
 
 	try{
 		const result = await pool.query(
-			`SELECT u.id, u.username, p.profile_picture_url
+			`SELECT u.id, u.username, u.is_admin, p.profile_picture_url
 				FROM users u
 				LEFT JOIN profiles p ON u.id = p.user_id
 				WHERE u.id = $1`,

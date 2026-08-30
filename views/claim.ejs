@@ -1,6 +1,6 @@
 <head>
-	<link rel="stylesheet" href="/css/claim.css">
 	<link rel="stylesheet" href="/css/auth.css">
+	<link rel="stylesheet" href="/css/claim.css">
 </head>
 
 <script defer type="module" src="/js/claim.js"></script>
@@ -16,8 +16,8 @@
 		</div>
 	</div>
 
-	<div class="claim-panel">
-		<% if(state === "ready") { %>
+	<div class="section-auth claim-panel">
+		<% if(state === "ready"){ %>
 			<form class="auth" id="claim-form" autocomplete="off" novalidate data-token="<%= token %>">
 				<h1 class="auth-title">CLAIM YOUR PROFILE</h1>
 				<p class="auth-description">Is this you, <%= profile.first_name %> <%= profile.last_name %>?</p>
@@ -63,18 +63,30 @@
 
 				<p class="auth-switch"><span id="claim-decline-btn">Decline this profile</span></p>
 			</form>
-		<% } else if(state === "already_claimed") { %>
+		<% } else if(state === "already_claimed"){ %>
 			<div class="auth claim-message">
 				<h1 class="auth-title">ALREADY CLAIMED</h1>
-				<p class="auth-description">This profile has already been claimed. If this is your account, <a href="/auth#login">log in</a> instead.</p>
+				<p class="auth-description">This profile has already been claimed.</p>
+
+				<div class="auth-submit-wrap">
+					<a id="claim-home-btn" class="solid-btn" href="/home">GO HOME</a>
+				</div>				
+
+				<div class="auth-submit-wrap claim-redirct-wrap">
+					<p class="auth-switch claim-redirect">If this is your account, <a href="/auth#login">log in</a> instead.</p>
+				</div>
 			</div>
-		<% } else { %>
+		<% } else{ %>
 			<div class="auth claim-message">
 				<h1 class="auth-title">LINK NOT FOUND</h1>
 				<p class="auth-description">This link is invalid or is expired.</p>
 
 				<div class="auth-submit-wrap">
-					<p class="auth-switch"><a href="mailto:info@strikrmma.com">Contact us</a> if you believe this is a mistake.</p>
+					<a id="claim-home-btn" class="solid-btn" href="/home">GO HOME</a>
+				</div>
+
+				<div class="auth-submit-wrap claim-redirct-wrap">
+					<p class="auth-switch claim-redirect"><a href="mailto:info@strikrmma.com">Contact us </a> if you believe this is a mistake.</p>
 				</div>
 			</div>
 		<% } %>

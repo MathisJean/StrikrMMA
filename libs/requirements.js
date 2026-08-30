@@ -16,18 +16,11 @@ const bcrypt = require('bcrypt');
 const session = require("express-session");
 const PgStore = require("connect-pg-simple")(session);
 
-const { v2: cloudinary } = require('cloudinary');
-
 const user_session = require('./middleware/user_session.js');
 
 const mailer = require('./mailer.js');
 
-//Configure Cloudinary
-cloudinary.config({
-	cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-	api_key: process.env.CLOUDINARY_API_KEY,
-	api_secret: process.env.CLOUDINARY_API_SECRET
-});
+const { upload_cloudinary_image, delete_cloudinary_image } = require('./cloudinary.js');
 
 //Export everything you want to reuse
 module.exports = {
@@ -46,9 +39,10 @@ module.exports = {
   session,
   PgStore,
 
-  cloudinary,
-
   user_session,
 
-  mailer
+  mailer,
+
+  upload_cloudinary_image,
+  delete_cloudinary_image
 };

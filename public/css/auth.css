@@ -1,7 +1,7 @@
 
 .main-section{
 	display: flex;
-	flex-direction: column;
+	flex-direction: column-reverse;
 
 	--auth-pct: 65;
 	--visual-pct: 35;
@@ -31,8 +31,8 @@
 	position: relative;
 
 	background-color: white;
-	border-top: 0.5em var(--blue) solid;
-	border-bottom: 0em var(--red) solid;
+	border-bottom: 0.5em var(--blue) solid;
+	border-top: 0em var(--red) solid;
 
 	width: 100%;
 	height: calc(var(--auth-pct) * 1%);
@@ -53,10 +53,10 @@
 	/* Moves .section-auth (order:2, starts at --visual-pct%) up so its top edge
 	   lands at 0% — expressed as a % of its OWN height, since that's what
 	   translateY resolves percentages against. */
-	transform: translateY(calc(var(--visual-pct) / var(--auth-pct) * -100%));
+	transform: translateY(calc(var(--visual-pct) / var(--auth-pct) * 100%));
 
-	border-top: 0em var(--blue) solid;
-	border-bottom: 0.5em var(--red) solid;
+	border-bottom: 0em var(--blue) solid;
+	border-top: 0.5em var(--red) solid;
 }
 
 .auth-signup #login-form{
@@ -296,7 +296,7 @@
 .visual-signup{
 	/* Moves .section-visual (order:1, starts at 0%) down so its top edge
 	   lands at --auth-pct% — expressed as a % of its OWN height. */
-	transform: translateY(calc(var(--auth-pct) / var(--visual-pct) * 100%));
+	transform: translateY(calc(var(--auth-pct) / var(--visual-pct) * -100%));
 }
 
 #visual-login, #visual-signup{
@@ -357,7 +357,7 @@
 	transition: color 400ms ease-in-out;
 }
 
-.visual-login .visual-title span{
+#visual-login .visual-title span{
 	color: var(--blue);
 }
 

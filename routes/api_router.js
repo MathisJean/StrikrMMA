@@ -1,64 +1,11 @@
 //Set up libraries
-const { fs, path, express, pool, cloudinary } = require("../libs/requirements");
+const { fs, path, express, pool, upload_cloudinary_image, delete_cloudinary_image } = require("../libs/requirements");
 const router = express.Router();
 
 const multer = require("multer");
 const upload = multer({ storage: multer.memoryStorage() });
 
 let profile_picture_url = undefined;
-
-/**
- * Uploads a file buffer to Cloudinary under the `strikr/profiles` folder.
- * @param {Buffer} file_buffer - Raw file bytes to upload.
- * @returns {Promise<object>|undefined} Cloudinary upload result, or undefined if no buffer was given.
- */
-function upload_cloudinary_image(file_buffer){
-	if(!file_buffer) return;
-
-	return new Promise((resolve, reject) => {
-		const stream = cloudinary.uploader.upload_stream(
-			{ folder: "strikr/profiles" },
-			(error, result) => {
-				if(error) reject(error);
-				else resolve(result);
-			}
-		);
-		stream.end(file_buffer);
-	});
-}
-
-/**
- * Deletes a previously-uploaded image or video from Cloudinary, derived from its secure URL.
- * @param {string} image_url - Full Cloudinary secure URL of the asset to delete.
- * @returns {Promise<object|undefined>} Cloudinary destroy result, or undefined if no URL was given or deletion failed.
- */
-async function delete_cloudinary_image(image_url){
-	if(!image_url) return;
-
-	try{
-		const parts = image_url.split("/upload/");
-		if(parts.length < 2) return;
-
-		let path = parts[1];
-
-		if(!path.startsWith("v") && path.includes("/")){
-			path = path.substring(path.indexOf("/") + 1);
-		}
-
-		//Remove version prefix(e.g., v1234567890/)
-		const public_id_with_extension = path.replace(/^v\d+\//, "");
-
-		//Remove file extension(.jpg, .png, etc.)
-		const public_id = public_id_with_extension.substring(0, public_id_with_extension.lastIndexOf("."));
-
-		//Delete from Cloudinary
-		const result = await cloudinary.uploader.destroy(public_id);
-		return result;
-	}
-	catch(err){
-		console.error("Failed to delete image from Cloudinary:", err);
-	}
-}
 
 const EDITABLE_FIELDS = {
 	profiles: [
@@ -280,6 +227,7 @@ router.patch("/update/profile", upload.any(), async(req, res) => {
 	try{
 		const data = JSON.parse(req.body.json);
 		const id = data.id;
+		let is_owner = false;
 
 		if(req.session.is_admin){
 			const profiles = await client.query(`SELECT id FROM profiles WHERE id = $1`, [id]);
@@ -297,6 +245,8 @@ router.patch("/update/profile", upload.any(), async(req, res) => {
 			if(profiles.rows.length === 0){
 				return res.status(403).json({ error: "Not authorized to edit this profile" });
 			}
+
+			is_owner = true;
 		}
 
 		const groups = Object.keys(data).filter(group => group !== "id");
@@ -335,7 +285,7 @@ router.patch("/update/profile", upload.any(), async(req, res) => {
 		}
 
 		await client.query("COMMIT");
-		return res.status(200).json({ success: true, profile_picture_url: profile_picture_url });
+		return res.status(200).json({ success: true, profile_picture_url: profile_picture_url, is_owner });
 	}
 	catch(err){
 		await client.query("ROLLBACK");
@@ -361,16 +311,16 @@ router.delete("/delete-account", async(req, res) => {
 	}
 
 	try{
-		const profiles = await pool.query(
+		const profile = await pool.query(
 			`SELECT id, profile_picture_url, profile_banner_url FROM profiles WHERE user_id = $1`,
 			[req.session.user_id]
 		);
 
-		const profile_ids = profiles.rows.map(p => p.id);
+		const profile_id = profile.rows.map(p => p.id);
 
-		const highlights = profile_ids.length > 0 ? await pool.query(`SELECT video_url FROM highlights WHERE profile_id = ANY($1)`, [profile_ids]) : { rows: [] };
+		const highlights = profile_id.length > 0 ? await pool.query(`SELECT video_url FROM highlights WHERE profile_id = ANY($1)`, [profile_id]) : { rows: [] };
 
-		const media_urls = [...profiles.rows.flatMap(p => [p.profile_picture_url, p.profile_banner_url]), ...highlights.rows.map(h => h.video_url)].filter(Boolean);
+		const media_urls = [...profile.rows.flatMap(p => [p.profile_picture_url, p.profile_banner_url]), ...highlights.rows.map(h => h.video_url)].filter(Boolean);
 
 		await pool.query(`DELETE FROM users WHERE id = $1`, [req.session.user_id]);
 

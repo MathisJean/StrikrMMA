@@ -49,6 +49,7 @@ Strikr is a dedicated link-in-bio web application built for combat sports athlet
 
 ## Code Conventions & Standards
 - **Vanilla JS & Modular CSS:** Avoid introducing heavy UI frameworks (React, Vue) unless explicitly requested.
+- **Futur Implementation** If futur implementation, upscaling or reworking of code is needed, write a "//TODO:" comment with details specifying what is needed.
 - **Error Handling:** Centralized frontend and backend error handlers. Wrap unexpected server-side exceptions with Sentry integration.
 - **Validation:** Always validate and sanitize user inputs on Express API endpoints before database interaction.
 - **Database Rules:** Use parametric queries (`pg` pool) for all PostgreSQL operations to prevent SQL injection.

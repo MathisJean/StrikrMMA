@@ -68,7 +68,7 @@ async function create_and_send_token({ user_id, purpose, ttl_interval, build_lin
 		await send_email({
 			to: email,
 			subject,
-			html: `<p><a href="${link}">${subject}</a></p><p>This link will expire soon — if you didn't request this, you can ignore this email.</p>`,
+			html: `<p><a href="${link}">${subject}</a></p><p>This link will expire soon. If you didn't request this, you can ignore this email.</p>`,
 			text: link
 		});
 	}
@@ -120,10 +120,26 @@ async function peek_token({ raw_token, purpose, client = pool }){
 	return result.rows[0] || null;
 }
 
+/**
+ * Deletes `auth_tokens` rows that are no longer useful: already consumed, or expired
+ * more than 30 days ago (kept briefly past expiry in case recent activity needs
+ * investigating). Nothing else in the codebase cleans this table up, so this must be
+ * called on a recurring schedule (see server.js).
+ * @returns {Promise<number>} Number of rows deleted.
+ */
+async function cleanup_expired_tokens(){
+	const result = await pool.query(
+		`DELETE FROM auth_tokens WHERE used = true OR expires_at < now() - interval '30 days'`
+	);
+
+	return result.rowCount;
+}
+
 //Export mailer functions
 module.exports = {
 	send_email,
 	create_and_send_token,
 	verify_and_consume_token,
-	peek_token
+	peek_token,
+	cleanup_expired_tokens
 };

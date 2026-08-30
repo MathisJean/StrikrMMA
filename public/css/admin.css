@@ -1,0 +1,124 @@
+
+.admin-wrapper{
+	display: flex;
+
+	width: 100%;
+
+	padding: 2em;
+}
+
+.admin-content{
+	display: flex;
+	flex-direction: column;
+
+	gap: 1.5em;
+
+	width: 100%;
+	max-width: 50em;
+
+	margin: 0 auto;
+}
+
+.admin-header{
+	border-bottom: 0.25em var(--red) solid;
+	padding-bottom: 0.5em;
+}
+
+.badge-fieldset{
+	display: flex;
+	flex-direction: row;
+	flex-wrap: wrap;
+
+	gap: 1em;
+
+	border: none;
+	padding: 0;
+	margin: 0;
+}
+
+.badge-fieldset legend{
+	font-family: "Oswald", sans-serif;
+	font-weight: 700;
+	color: var(--placeholder-clr);
+
+	padding: 0;
+	margin-bottom: 0.5em;
+}
+
+.badge-option{
+	display: flex;
+	align-items: center;
+	gap: 0.4em;
+
+	font-weight: 400;
+	color: var(--main-txt);
+}
+
+.placeholder-list{
+	display: flex;
+	flex-direction: column;
+
+	gap: 1em;
+}
+
+.empty-state{
+	color: var(--placeholder-clr);
+}
+
+.placeholder-row{
+	display: flex;
+	flex-direction: column;
+
+	gap: 0.75em;
+
+	padding: 1em;
+
+	border: 1px solid var(--main-txt);
+	border-radius: 0.5em;
+}
+
+.placeholder-info{
+	display: flex;
+	flex-direction: row;
+	flex-wrap: wrap;
+
+	gap: 0.5em 1em;
+	align-items: baseline;
+}
+
+.placeholder-name{
+	font-weight: 700;
+}
+
+.placeholder-username,
+.placeholder-badge,
+.placeholder-date{
+	color: var(--placeholder-clr);
+	font-size: 0.9em;
+}
+
+.placeholder-actions{
+	display: flex;
+	flex-direction: row;
+	flex-wrap: wrap;
+
+	gap: 0.5em;
+}
+
+.claim-link-output{
+	display: flex;
+	flex-direction: row;
+
+	gap: 0.5em;
+}
+
+.claim-link-output[hidden]{
+	display: none;
+}
+
+.claim-link-field{
+	flex: 1;
+	min-width: 0;
+
+	margin: 0;
+}

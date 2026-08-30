@@ -42,8 +42,12 @@ router.get("/:username/settings", async(req, res) => {
 	const user = users.rows[0];
 
 	const is_owner = req.session.user_id === user.id;
+	const is_admin_view = Boolean(req.session.is_admin) && !is_owner;
+	const is_claimed = user.claimed;
 
-	if(!is_owner) return res.status(403).send("You do not have permission to edit this profile");
+	const can_edit = is_owner || (req.session.is_admin && !is_claimed);
+
+	if(!can_edit) return res.status(403).json({ error: "You do not have permission to edit this profile" });
 
 	const profiles = await pool.query(`SELECT * FROM profiles WHERE user_id = $1 ORDER BY created_at ASC`, [user.id]);
 
@@ -113,6 +117,7 @@ router.get("/:username/settings", async(req, res) => {
 		title: `Settings`,
 		profile,
 		is_owner,
+		is_admin_view,
 		corner: user.corner,
 		tags: tags.rows,
 		badges: badges,
@@ -209,6 +214,8 @@ router.get("/:username", async(req, res) => {
 		title: `${profile.first_name}${nickname}${profile.last_name}`,
 		profile,
 		is_owner,
+		is_beta_tester: user.is_beta_tester,
+		is_founding_member: user.is_founding_member,
 		corner: user.corner,
 		tags: tags.rows,
 		badges: badges,

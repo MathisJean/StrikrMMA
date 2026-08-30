@@ -3,7 +3,7 @@
 [ ] Clean Up Code + Comments
 [ ] Debugging
 [x] Mobile UI
-[ ] Settings Drop Area Fill Mode
+[ ] Settings Drop Area Fill Mode + UI
 [x] Account Deletion
 [ ] Error Page (404 / 500)
 [ ] Environment Variables & Security Audit
@@ -15,7 +15,8 @@
 [ ] Content Reporting
 [ ] Password Reset
 [x] Account Claiming
-[ ] Admin Account Creation
+[x] Admin Account Creation
+[ ] Error Handling (No Visible JSON Errors)
 
 [ ] General Popup Class (Confirm Actions + Terms & Conditions)
 [ ] OpenGraph Meta Tags & SEO

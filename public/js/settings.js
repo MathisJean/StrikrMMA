@@ -1,4 +1,5 @@
 const profile_form = document.getElementById("profile-form");
+const profile_btn = document.getElementById("profile-btn");
 
 document.addEventListener("DOMContentLoaded", () => {
 	//Setup tag counters
@@ -206,8 +207,6 @@ profile_form.addEventListener("submit", async(event) => {
 
 		const changes = get_difference(initial_state, current_state);
 
-		console.log(initial_state, current_state)
-
 		if(changes === undefined){
 			show_error("No Changed Made", "", "", false, false);
 			return;
@@ -225,7 +224,7 @@ profile_form.addEventListener("submit", async(event) => {
 		const data = await response.json();
 
 		if(response.ok){
-			if(data.profile_picture_url !== undefined) profile_btn.style.backgroundImage = `url('${data.profile_picture_url}'), url('/svg/profile_light.svg')`;
+			if(data.profile_picture_url !== undefined && data.is_owner) profile_btn.style.backgroundImage = `url('${data.profile_picture_url}'), url('/svg/profile_light.svg')`;
 
 			initial_state = current_state;
 

@@ -281,12 +281,13 @@
 	border-radius: 0.25em;
 	border: none;
 
-	height: 3em;
-	width: 3em;
+	height: 100%;
+	aspect-ratio: 1 / 1;
 
 	margin: 0%;
 }
 
+#admin-btn,
 #join-btn{
 	height: auto;
 

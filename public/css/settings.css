@@ -330,30 +330,6 @@ select{
 }
 
 /* -------------------- */
-/* Buttons              */
-/* -------------------- */
-
-.btn{
-	padding: 10px 20px;
-	background: #5078ff;
-	color: #fff;
-	border-radius: 8px;
-	cursor: pointer;
-	font-weight: bold;
-	width: auto;
-}
-
-.btn:hover{
-	background: #3f5bd1;
-}
-
-/* Remove little full-width input button look */
-button{
-	border: none;
-	outline: none;
-}
-
-/* -------------------- */
 /* File Input           */
 /* -------------------- */
 

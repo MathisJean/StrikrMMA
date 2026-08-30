@@ -1,3 +1,19 @@
+//-- URL Manipulation --//
+if(window.location.hash === '#login' || window.location.hash === '#signup'){
+	//Strips the hash from the URL bar without causing a page reload
+	history.replaceState(null, document.title, window.location.pathname + window.location.search);
+}	
+
+window.addEventListener("DOMContentLoaded", async() => {
+	//Clean Search Parameters on Refresh
+	const current_url = new URL(window.location.href);
+
+	current_url.searchParams.delete("search");
+	current_url.searchParams.delete("page");
+	current_url.searchParams.delete("limit");
+
+	window.history.replaceState({}, "", current_url.pathname + current_url.search + current_url.hash);
+});
 
 //-- Dynamic viewport height --//
 //In-app browsers (Instagram/TikTok webviews) resize their own chrome, so
@@ -36,21 +52,11 @@ document.querySelectorAll('input[type="number"]').forEach(input => {
 	});
 });
 
+//-- Variables --//
 const profile_btn = document.getElementById("profile-btn");
 const join_btn = document.getElementById("join-btn");
 const setting_btn = document.getElementById("setting-btn");
 const logout_btn = document.getElementById("logout-btn");
-
-window.addEventListener("DOMContentLoaded", async() => {
-	//Clean Search Parameters on Refresh
-	const current_url = new URL(window.location.href);
-
-	current_url.searchParams.delete("search");
-	current_url.searchParams.delete("page");
-	current_url.searchParams.delete("limit");
-
-	window.history.replaceState({}, "", current_url.pathname + current_url.search + current_url.hash);
-});
 
 /**
  * Logs the current user out and redirects to the homepage.
@@ -129,7 +135,7 @@ const search_form = document.querySelector(".search-container form");
 const search_menu = document.querySelector(".search-menu");
 const results = document.querySelector(".results");
 const pagination = document.querySelector(".pagination");
-const search_input = document.querySelector('.input-wrapper input[type="search"]');
+const search_input = document.querySelector('.nav-input-wrapper input[type="search"]');
 const clear_btn = document.getElementById("search-clear");
 
 const search_url = new URL(window.location.href);
@@ -162,6 +168,8 @@ function hide_pagination(hiding = true){
 
 //Show and hide results menu
 search_input.addEventListener("focus", () => {
+	console.log("test")
+
 	if(search_input.value === "") hide_pagination();
 	else hide_pagination(false);
 

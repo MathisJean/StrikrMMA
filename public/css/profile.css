@@ -17,14 +17,38 @@
 	width: 100%;
 	min-height: 45vh;
 
-	background-image: 
-        linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.5)),
-        var(--bg-mobile);
-    background-size: cover;
-	background-position: center;
-	background-color: rgb(0, 0, 0);
-
 	z-index: 1;
+
+	background-image:
+		linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+		linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+		linear-gradient(to bottom right, rgba(255, 80, 80, 0.3), rgba(0, 0, 0, 0.3), rgba(80, 120, 255, 0.3));
+
+	background-color: rgb(0, 1, 1);
+
+	background-size: 
+		var(--grid-size) var(--grid-size),
+		var(--grid-size) var(--grid-size),
+		cover;
+
+	background-position: 
+		center, 
+		center, 
+		center;
+
+	background-repeat: 
+		repeat, 
+		repeat, 
+		no-repeat;
+}
+
+.hero.has-profile-picture{
+	background-image:
+		linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.5)),
+		var(--bg-mobile);
+
+	background-size: cover, cover;
+	background-repeat: no-repeat, no-repeat;
 }
 
 .owner-btn{
@@ -130,7 +154,7 @@
 
 	aspect-ratio: 1 / 1;
 
-	width: 20%;
+	width: clamp(150px, 2vw + 25%, 350px);
 
 	background-color: var(--card-bg);
 	background-size: cover;
@@ -219,6 +243,7 @@
 	margin: 0;
 }
 
+.content-actions > * > img,
 .content-actions > * > svg{
 	height: 1.25em;
 
@@ -504,10 +529,37 @@
 }
 
 @media (min-width: 480px){
-	.hero{
-		background-image: 
-					linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.3)),
-					var(--bg-desktop);
+	.hero.has-profile-picture{
+		background-image:
+			linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+			linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+			linear-gradient(to bottom right, rgba(255, 80, 80, 0.3), rgba(0, 0, 0, 0.3), rgba(80, 120, 255, 0.3));
+
+		background-color: rgb(0, 1, 1);
+
+		background-size: 
+			var(--grid-size) var(--grid-size),
+			var(--grid-size) var(--grid-size),
+			cover;
+
+		background-position: 
+			center, 
+			center, 
+			center;
+
+		background-repeat: 
+			repeat, 
+			repeat, 
+			no-repeat;
+	}
+
+	.hero.has-banner-picture{
+		background-image:
+			linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.5)),
+			var(--bg-desktop);
+
+		background-size: cover, cover;
+		background-repeat: no-repeat, no-repeat;
 	}
 
 	.profile-img{
@@ -541,6 +593,10 @@
 	}
 
 	.content-actions > *{
+		font-size: 1.25em;
+	}
+
+	.tag{
 		font-size: 1.25em;
 	}
 
@@ -579,6 +635,10 @@
 	.accordion-body,
 	[aria-expanded="true"] + .accordion-body{
 		grid-template-rows: 1fr;
+	}
+
+	.accordion-body-inner{
+		overflow: visible;
 	}
 
 	.specs-details,
