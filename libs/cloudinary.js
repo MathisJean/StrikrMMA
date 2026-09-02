@@ -29,36 +29,40 @@ function upload_cloudinary_image(file_buffer){
 }
 
 /**
- * Deletes a previously-uploaded image or video from Cloudinary, derived from its secure URL.
- * @param {string} image_url - Full Cloudinary secure URL of the asset to delete.
- * @returns {Promise<object|undefined>} Cloudinary destroy result, or undefined if no URL was given or deletion failed.
+ * Derives a Cloudinary public_id from one of our secure URLs.
+ * @param {string} image_url - Full Cloudinary secure URL.
+ * @returns {string|undefined} The public_id, or undefined if the URL couldn't be parsed.
  */
-async function delete_cloudinary_image(image_url){
+function extract_public_id(image_url){
 	if(!image_url) return;
 
-	try{
-		const parts = image_url.split("/upload/");
-		if(parts.length < 2) return;
+	const parts = image_url.split("/upload/");
+	if(parts.length < 2) return;
 
-		let path = parts[1];
+	let path = parts[1];
 
-		if(!path.startsWith("v") && path.includes("/")){
-			path = path.substring(path.indexOf("/") + 1);
-		}
-
-		//Remove version prefix(e.g., v1234567890/)
-		const public_id_with_extension = path.replace(/^v\d+\//, "");
-
-		//Remove file extension(.jpg, .png, etc.)
-		const public_id = public_id_with_extension.substring(0, public_id_with_extension.lastIndexOf("."));
-
-		//Delete from Cloudinary
-		const result = await cloudinary.uploader.destroy(public_id);
-		return result;
+	if(!path.startsWith("v") && path.includes("/")){
+		path = path.substring(path.indexOf("/") + 1);
 	}
-	catch(err){
-		console.error("Failed to delete image from Cloudinary:", err);
-	}
+
+	//Remove version prefix
+	const public_id_with_extension = path.replace(/^v\d+\//, "");
+
+	//Remove file extension
+	return public_id_with_extension.substring(0, public_id_with_extension.lastIndexOf("."));
+}
+
+/**
+ * Deletes a previously-uploaded image or video from Cloudinary, derived from its secure URL.
+ * Rejects on failure — callers that only want best-effort cleanup should catch and log.
+ * @param {string} image_url - Full Cloudinary secure URL of the asset to delete.
+ * @returns {Promise<object|undefined>} Cloudinary destroy result, or undefined if no URL was given.
+ */
+async function delete_cloudinary_image(image_url){
+	const public_id = extract_public_id(image_url);
+	if(!public_id) return;
+
+	return await cloudinary.uploader.destroy(public_id);
 }
 
 module.exports = {

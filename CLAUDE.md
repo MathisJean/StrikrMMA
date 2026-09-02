@@ -1,6 +1,9 @@
 # Strikr — Combat Sports Link-in-Bio
 
 Strikr is a dedicated link-in-bio web application built for combat sports athletes to present their fight records, physical specifications, walkout tracks, and career milestones in a clean, high-impact format.
+**PLANS AS SHORT BULLET POINTS**
+
+
 
 ## Code Style & Formatting
 

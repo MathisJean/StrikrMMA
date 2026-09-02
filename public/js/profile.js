@@ -1,6 +1,5 @@
 
-//-- Accordion sections (specs / numbers / story) --//
-//Radio-group behavior: exactly one section open at a time.
+//-- Accordion sections --//
 const accordion_toggles = document.querySelectorAll("[data-accordion-toggle]");
 
 accordion_toggles.forEach(header => {

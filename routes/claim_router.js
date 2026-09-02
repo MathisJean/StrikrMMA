@@ -1,6 +1,6 @@
 
 //Set up libraries
-const { fs, path, express, pool, bcrypt, delete_cloudinary_image } = require("../libs/requirements");
+const { fs, path, express, pool, bcrypt, delete_cloudinary_image, errors } = require("../libs/requirements");
 const mailer = require("../libs/mailer.js");
 const router = express.Router();
 
@@ -40,28 +40,22 @@ router.get("/", async(req, res) => {
 		return res.render("claim", { layout: "layout", title: "Claim Profile", state: "invalid", profile: null, token: "" });
 	}
 
-	try{
-		const token_row = await mailer.peek_token({ raw_token: token, purpose: "profile_claim" });
+	const token_row = await mailer.peek_token({ raw_token: token, purpose: "profile_claim" });
 
-		if(!token_row){
-			return res.render("claim", { layout: "layout", title: "Claim Profile", state: "invalid", profile: null, token });
-		}
-
-		const profile_result = await pool.query(
-			`SELECT p.*, u.claimed FROM profiles p JOIN users u ON u.id = p.user_id WHERE p.user_id = $1`,
-			[token_row.user_id]
-		);
-
-		if(profile_result.rows.length === 0 || profile_result.rows[0].claimed){
-			return res.render("claim", { layout: "layout", title: "Claim Profile", state: "already_claimed", profile: null, token });
-		}
-
-		return res.render("claim", { layout: "layout", title: "Claim Profile", state: "ready", profile: profile_result.rows[0], token });
+	if(!token_row){
+		return res.render("claim", { layout: "layout", title: "Claim Profile", state: "invalid", profile: null, token });
 	}
-	catch(err){
-		console.error("Failed to load claim page:", err);
-		return res.status(500).render("error");
+
+	const profile_result = await pool.query(
+		`SELECT p.*, u.claimed FROM profiles p JOIN users u ON u.id = p.user_id WHERE p.user_id = $1`,
+		[token_row.user_id]
+	);
+
+	if(profile_result.rows.length === 0 || profile_result.rows[0].claimed){
+		return res.render("claim", { layout: "layout", title: "Claim Profile", state: "already_claimed", profile: null, token });
 	}
+
+	return res.render("claim", { layout: "layout", title: "Claim Profile", state: "ready", profile: profile_result.rows[0], token });
 });
 
 /**
@@ -77,35 +71,28 @@ router.post("/accept", async(req, res) => {
 	const { token, username, email, password, corner } = req.body;
 
 	if(!token || !username || !email || !password || !["red", "blue"].includes(corner)){
-		return res.status(400).json({ error: "Missing or invalid fields" });
+		throw errors.bad_request("Missing or invalid fields");
 	}
 
 	const hashed_password = await bcrypt.hash(password, 10);
 
-	const client = await pool.connect();
-
-	try{
-		await client.query("BEGIN");
-
+	const user_id = await pool.with_transaction(async(client) => {
 		const token_row = await mailer.verify_and_consume_token({ raw_token: token, purpose: "profile_claim", client });
 
 		if(!token_row){
-			await client.query("ROLLBACK");
-			return res.status(409).json({ error: "This claim link is invalid or has expired" });
+			throw errors.conflict("This claim link is invalid or has expired");
 		}
 
 		const email_check = await client.query(`SELECT id FROM users WHERE LOWER(email) = LOWER($1)`, [email]);
 
 		if(email_check.rows.length > 0){
-			await client.query("ROLLBACK");
-			return res.status(409).json({ error: "Email already registered" });
+			throw errors.conflict("Email already registered");
 		}
 
 		const username_check = await client.query(`SELECT id FROM users WHERE LOWER(username) = LOWER($1)`, [username]);
 
 		if(username_check.rows.length > 0){
-			await client.query("ROLLBACK");
-			return res.status(409).json({ error: "Username already registered" });
+			throw errors.conflict("Username already registered");
 		}
 
 		const user_result = await client.query(
@@ -116,25 +103,16 @@ router.post("/accept", async(req, res) => {
 		);
 
 		if(user_result.rows.length === 0){
-			await client.query("ROLLBACK");
-			return res.status(409).json({ error: "This profile was already claimed" });
+			throw errors.conflict("This profile was already claimed");
 		}
 
-		await client.query("COMMIT");
+		return user_result.rows[0].id;
+	});
 
-		req.session.user_id = user_result.rows[0].id;
-		req.session.is_admin = false;
+	req.session.user_id = user_id;
+	req.session.is_admin = false;
 
-		return res.status(200).json({ success: true, username });
-	}
-	catch(err){
-		await client.query("ROLLBACK");
-		console.error("Failed to accept claim:", err);
-		return res.status(500).json({ error: "Server error" });
-	}
-	finally{
-		client.release();
-	}
+	return res.status(200).json({ success: true, username });
 });
 
 /**
@@ -150,19 +128,14 @@ router.post("/decline", async(req, res) => {
 	const { token } = req.body;
 
 	if(!token){
-		return res.status(400).json({ error: "Missing token" });
+		throw errors.bad_request("Missing token");
 	}
 
-	const client = await pool.connect();
-
-	try{
-		await client.query("BEGIN");
-
+	await pool.with_transaction(async(client) => {
 		const token_row = await mailer.verify_and_consume_token({ raw_token: token, purpose: "profile_claim", client });
 
 		if(!token_row){
-			await client.query("ROLLBACK");
-			return res.status(404).json({ error: "This claim link is invalid or has expired" });
+			throw errors.not_found("This claim link is invalid or has expired");
 		}
 
 		const profile = await client.query(
@@ -175,25 +148,12 @@ router.post("/decline", async(req, res) => {
 		const highlights = profile_id.length > 0 ? await client.query(`SELECT video_url FROM highlights WHERE profile_id = ANY($1)`, [profile_id]) : { rows: [] };
 		const media_urls = [...profile.rows.flatMap(p => [p.profile_picture_url, p.profile_banner_url]), ...highlights.rows.map(h => h.video_url)].filter(Boolean);
 
+		await Promise.all(media_urls.map(delete_cloudinary_image));
+
 		await client.query(`DELETE FROM users WHERE id = $1 AND claimed = false`, [token_row.user_id]);
+	});
 
-		await client.query("COMMIT");
-
-		media_urls.forEach(url => {
-			delete_cloudinary_image(url).catch(err => {
-				console.error("Orphaned media cleanup failed:", err);
-			});
-		});
-		return res.status(200).json({ success: true });
-	}
-	catch(err){
-		await client.query("ROLLBACK");
-		console.error("Failed to decline claim:", err);
-		return res.status(500).json({ error: "Server error" });
-	}
-	finally{
-		client.release();
-	}
+	return res.status(200).json({ success: true });
 });
 
 //Export router to server file

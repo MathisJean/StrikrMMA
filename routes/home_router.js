@@ -1,6 +1,6 @@
 
 //Set up libraries
-const { fs, path, express } = require("../libs/requirements");
+const { express } = require("../libs/requirements");
 const router = express.Router()
 
 //Setup Router

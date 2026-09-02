@@ -1,27 +1,9 @@
 
 //Set up libraries
-const { express, pool } = require("../libs/requirements");
-const mailer = require("../libs/mailer.js");
+const { express, pool, mailer, errors, require_admin } = require("../libs/requirements");
 const router = express.Router();
 
 //Setup Router
-
-/**
- * Middleware requiring an authenticated session with is_admin set.
- * @param {import("express").Request} req - Express request object.
- * @param {import("express").Response} res - Express response object.
- * @param {import("express").NextFunction} next - Express next function.
- * @returns {void}
- */
-function require_admin(req, res, next){
-	if(!req.session.user_id || !req.session.is_admin){
-		return res.status(404).render("error", {
-			title: "Error",
-		});
-	}
-	next();
-}
-
 router.use(require_admin);
 
 const ALLOWED_BADGES = ["none", "founding_member", "beta_tester"];
@@ -34,22 +16,45 @@ const ALLOWED_BADGES = ["none", "founding_member", "beta_tester"];
  * @returns {Promise<void>}
  */
 router.get("/", async(req, res) => {
-	try{
-		const result = await pool.query(
-			`SELECT u.id AS user_id, u.username, u.created_at, u.is_founding_member, u.is_beta_tester,
-			        p.id AS profile_id, p.first_name, p.last_name
-			 FROM users u
-			 LEFT JOIN profiles p ON p.user_id = u.id
-			 WHERE u.claimed = false
-			 ORDER BY u.created_at DESC`
-		);
+	const claimed_result = await pool.query(
+		`SELECT u.id AS user_id, u.username, u.created_at, u.is_founding_member, u.is_beta_tester,
+		        p.id AS profile_id, p.first_name, p.last_name
+		 FROM users u
+		 LEFT JOIN profiles p ON p.user_id = u.id
+		 WHERE u.claimed = false
+		 ORDER BY u.created_at DESC`
+	);
 
-		return res.render("admin", { layout: "layout", title: "Admin", placeholders: result.rows });
-	}
-	catch(err){
-		console.error("Failed to load admin dashboard:", err);
-		return res.status(500).render("error", { title: "Error" });
-	}
+	return res.render("admin", { layout: "layout", title: "Admin", placeholders: claimed_result.rows });
+});
+
+/**
+ * GET /admin/reports
+ * Renders every profile report with the reported/reporter ids resolved to
+ * names/usernames, newest first.
+ * @param {import("express").Request} req - Express request object.
+ * @param {import("express").Response} res - Express response object.
+ * @returns {Promise<void>}
+ */
+router.get("/reports", async(req, res) => {
+	const result = await pool.query(
+		`SELECT
+		   r.id, r.reason, r.status, r.created_at,
+		   reported_user.username      AS reported_username,
+		   reported_profile.first_name AS reported_first_name,
+		   reported_profile.last_name  AS reported_last_name,
+		   reporter_user.username      AS reporter_username,
+		   reporter_profile.first_name AS reporter_first_name,
+		   reporter_profile.last_name  AS reporter_last_name
+		 FROM reports r
+		 INNER JOIN profiles reported_profile ON reported_profile.id = r.reported_profile_id
+		 INNER JOIN users reported_user ON reported_user.id = reported_profile.user_id
+		 LEFT JOIN users reporter_user ON reporter_user.id = r.reporter_user_id
+		 LEFT JOIN profiles reporter_profile ON reporter_profile.user_id = reporter_user.id
+		 ORDER BY r.created_at DESC`
+	);
+
+	return res.render("admin_reports", { layout: "layout", title: "Admin — Reports", reports: result.rows });
 });
 
 /**
@@ -65,57 +70,45 @@ router.post("/profiles", async(req, res) => {
 	const { first_name, last_name, badge } = req.body;
 
 	if(!first_name?.trim() || !last_name?.trim()){
-		return res.status(400).json({ error: "first_name and last_name are required" });
+		throw errors.bad_request("first_name and last_name are required");
 	}
 
 	const safe_badge = ALLOWED_BADGES.includes(badge) ? badge : "none";
 	const is_founding_member = safe_badge === "founding_member";
 	const is_beta_tester = safe_badge === "beta_tester";
 
-	const client = await pool.connect();
+	const { user_id, profile_id, username } = await pool.with_transaction(async(client) => {
+		const user_result = await client.query(
+			`INSERT INTO users (username, corner, claimed, is_founding_member, is_beta_tester)
+			 VALUES ('user-' || substr(md5(gen_random_uuid()::text), 1, 12), $1, $2, $3, $4)
+			 RETURNING id, username`,
+			['red', false, is_founding_member, is_beta_tester]
+		);
 
-	try{
-		await client.query("BEGIN");
+		const { id: user_id, username } = user_result.rows[0];
 
-        const user_result = await client.query(
-            `INSERT INTO users (username, corner, claimed, is_founding_member, is_beta_tester)
-             VALUES ('user-' || substr(md5(gen_random_uuid()::text), 1, 12), $1, $2, $3, $4)
-             RETURNING id, username`,
-            ['red', false, is_founding_member, is_beta_tester]
-        );
-        
-        const { id: user_id, username } = user_result.rows[0];
+		const profile_result = await client.query(
+			`INSERT INTO profiles (user_id, first_name, last_name)
+			 VALUES ($1, $2, $3)
+			 RETURNING id`,
+			[user_id, first_name.trim(), last_name.trim()]
+		);
 
-        const profile_result = await client.query(
-            `INSERT INTO profiles (user_id, first_name, last_name) 
-             VALUES ($1, $2, $3) 
-             RETURNING id`,
-            [user_id, first_name.trim(), last_name.trim()]
-        );
+		const profile_id = profile_result.rows[0].id;
 
-        const profile_id = profile_result.rows[0].id;
+		await client.query(
+			`INSERT INTO records (profile_id) VALUES ($1)`,
+			[profile_id]
+		);
 
-        await client.query(
-            `INSERT INTO records (profile_id) VALUES ($1)`,
-            [profile_id]
-        );
+		return { user_id, profile_id, username };
+	});
 
-        await client.query("COMMIT");
-
-        return res.status(201).json({ 
-            user_id, 
-            profile_id, 
-            username 
-        });
-	}
-	catch(err){
-		await client.query("ROLLBACK");
-		console.error("Failed to create unclaimed profile:", err);
-		return res.status(500).json({ error: "Server error" });
-	}
-	finally{
-		client.release();
-	}
+	return res.status(201).json({
+		user_id,
+		profile_id,
+		username
+	});
 });
 
 /**
@@ -130,31 +123,25 @@ router.post("/profiles", async(req, res) => {
 router.post("/profiles/:user_id/claim-link", async(req, res) => {
 	const { user_id } = req.params;
 
-	try{
-		const user_check = await pool.query(`SELECT id, claimed FROM users WHERE id = $1`, [user_id]);
+	const user_check = await pool.query(`SELECT id, claimed FROM users WHERE id = $1`, [user_id]);
 
-		if(user_check.rows.length === 0){
-			return res.status(404).json({ error: "User not found" });
-		}
-
-		if(user_check.rows[0].claimed){
-			return res.status(409).json({ error: "Profile is already claimed" });
-		}
-
-		const { link } = await mailer.create_and_send_token({
-			user_id,
-			purpose: "profile_claim",
-			ttl_interval: "30 days",
-			build_link: raw_token => `${process.env.APP_BASE_URL}/claim?token=${raw_token}`,
-			deliver: false
-		});
-
-		return res.status(201).json({ claim_url: link });
+	if(user_check.rows.length === 0){
+		throw errors.not_found("User not found");
 	}
-	catch(err){
-		console.error("Failed to generate claim link:", err);
-		return res.status(500).json({ error: "Server error" });
+
+	if(user_check.rows[0].claimed){
+		throw errors.conflict("Profile is already claimed");
 	}
+
+	const { link } = await mailer.create_and_send_token({
+		user_id,
+		purpose: "profile_claim",
+		ttl_interval: "30 days",
+		build_link: raw_token => `${process.env.APP_BASE_URL}/claim?token=${raw_token}`,
+		deliver: false
+	});
+
+	return res.status(201).json({ claim_url: link });
 });
 
 /**
@@ -169,28 +156,47 @@ router.post("/profiles/:user_id/claim-link", async(req, res) => {
 router.delete("/profiles/:user_id", async(req, res) => {
 	const { user_id } = req.params;
 
-	try{
-		const deleted = await pool.query(
-			`DELETE FROM users WHERE id = $1 AND claimed = false RETURNING id`,
-			[user_id]
-		);
+	const deleted = await pool.query(
+		`DELETE FROM users WHERE id = $1 AND claimed = false RETURNING id`,
+		[user_id]
+	);
 
-		if(deleted.rows.length === 0){
-			const check = await pool.query(`SELECT claimed FROM users WHERE id = $1`, [user_id]);
+	if(deleted.rows.length === 0){
+		const check = await pool.query(`SELECT claimed FROM users WHERE id = $1`, [user_id]);
 
-			if(check.rows.length === 0){
-				return res.status(404).json({ error: "User not found" });
-			}
-
-			return res.status(409).json({ error: "Cannot delete a claimed profile" });
+		if(check.rows.length === 0){
+			throw errors.not_found("User not found");
 		}
 
-		return res.status(204).send();
+		throw errors.conflict("Cannot delete a claimed profile");
 	}
-	catch(err){
-		console.error("Failed to delete placeholder profile:", err);
-		return res.status(500).json({ error: "Server error" });
+
+	return res.status(204).send();
+});
+
+const ALLOWED_REPORT_STATUSES = ["reviewed", "dismissed"];
+
+/**
+ * PATCH /admin/reports/:id
+ * Marks a report reviewed or dismissed. Both are terminal but not mutually
+ * locked — re-classifying between them is harmless, unlike a delete.
+ * @param {import("express").Request} req - Express request object. Expects `id` route param and `status` ("reviewed" | "dismissed") in the body.
+ * @param {import("express").Response} res - Express response object.
+ * @returns {Promise<void>}
+ */
+router.patch("/reports/:id", async(req, res) => {
+	const { id } = req.params;
+	const { status } = req.body;
+
+	if(!ALLOWED_REPORT_STATUSES.includes(status)){
+		throw errors.bad_request("status must be 'reviewed' or 'dismissed'");
 	}
+
+	const updated = await pool.query(`UPDATE reports SET status = $1 WHERE id = $2 RETURNING id`, [status, id]);
+
+	if(updated.rows.length === 0) throw errors.not_found("Report not found");
+
+	return res.status(200).json({ success: true, status });
 });
 
 //Export router to server file

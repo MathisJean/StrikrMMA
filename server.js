@@ -1,7 +1,8 @@
 
 //Set up libraries
 require('dotenv').config();
-const { http, os, fs, path, express, expressLayouts, pool, session, PgStore, user_session, mailer } = require('./libs/requirements');
+const { http, os, fs, path, express, expressLayouts, pool, session, PgStore, user_session, mailer, logger } = require('./libs/requirements');
+const { not_found_handler, error_handler } = require('./libs/middleware/error_handler');
 const app = express();
 
 let host = "localhost";
@@ -74,12 +75,13 @@ app.use('/admin', admin_router);
 const claim_router = require('./routes/claim_router');
 app.use('/claim', claim_router);
 
+//Reports
+const report_router = require('./routes/report_router');
+app.use('/report', report_router);
+
 //Error
-app.use((req, res) => {
-	res.status(404).render("error", {
-		title: "Error",
-	});
-});
+app.use(not_found_handler);
+app.use(error_handler);
 
 //-- Locals --//
 app.locals.calculate_age = (date) => {
@@ -110,14 +112,14 @@ app.locals.calculate_year = (date) => {
 //TODO: Convert to Cron job infrastructure
 const TOKEN_CLEANUP_INTERVAL_MS = 1000 * 60 * 60 * 24; //24 hours
 
-mailer.cleanup_expired_tokens().catch(err => console.error("Token cleanup failed:", err));
+mailer.cleanup_expired_tokens().catch(err => logger.error("Token cleanup failed", err));
 setInterval(() => {
-	mailer.cleanup_expired_tokens().catch(err => console.error("Token cleanup failed:", err));
+	mailer.cleanup_expired_tokens().catch(err => logger.error("Token cleanup failed", err));
 }, TOKEN_CLEANUP_INTERVAL_MS);
 
 const http_server = http.createServer(app);
 
 //Start up server
 http_server.listen(port, host, () => {
-  console.log(`Server running at http://${host}:${port} close it with CTRL + C`);
+  logger.info(`Server running at http://${host}:${port} close it with CTRL + C`);
 });

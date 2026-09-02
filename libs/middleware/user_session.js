@@ -1,4 +1,5 @@
 const pool = require("../db");
+const logger = require("../logger");
 
 /**
  * Returns the currently logged-in user's id, username, and profile picture.
@@ -32,7 +33,7 @@ async function user_session(req, res, next){
 		next();
 	}
 	catch(err){
-		console.error("user_session middleware failed:", err);
+		logger.error("user_session middleware failed", err);
 		next();
 	}
 }

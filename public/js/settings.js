@@ -226,14 +226,42 @@ profile_form.addEventListener("submit", async(event) => {
 		if(response.ok){
 			if(data.profile_picture_url !== undefined && data.is_owner) profile_btn.style.backgroundImage = `url('${data.profile_picture_url}'), url('/svg/profile_light.svg')`;
 
-			initial_state = current_state;
+			Object.keys(initial_state).forEach(group => {
+				if(!current_state[group]) return;
+				if(data.failed_groups.includes(group)) return;
 
-			show_error("Saved Changed", "", "", false, false);
+				if(Array.isArray(group)){
+					for(let i = 0; i < group.length; i++){
+						if(current_state[group][i]) initial_state[group][i] = current_state[group][i];
+					}
+				}
+				else{
+					Object.keys(group).forEach(key => {
+						if(data.failed_uploads.includes(key)) return;
+
+						initial_state[group][key] = current_state[group][key];
+					});
+				}
+			});
+
+			const failures = [...(data.failed_uploads || []), ...(data.failed_groups || [])];
+			const failure_list = failures
+				.map(item => item.replace(/_/g, " "))
+				.join(", ")
+				.toLowerCase()
+				.replace(/, ([^,]*)$/, " and $1");
+
+			if(failures.length > 0){
+				show_error("Saved With Issues", "422", `Failed to save ${failure_list}`, true, true);
+			}
+			else{
+				show_error("Saved Changed", "", "", false, false);
+			}
 		}
 		else{
-			const error = new Error(result.message || "Error Saving Data.");
+			const error = new Error(data.error || "Error Saving Data.");
 			error.status = response.status;
-			error.details = result.error || result.message || "Error Saving Data.";
+			error.details = data.error || "Error Saving Data.";
 			throw error;
 		}
 	}

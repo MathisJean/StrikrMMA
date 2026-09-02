@@ -9,7 +9,60 @@
 	}
 </style>
 
+<script defer>
+	document.addEventListener("DOMContentLoaded", () => {
+        const report_btn = document.getElementById("report-btn");
+
+        report_btn?.addEventListener("click", async (event) => {
+            const profile_id = <%- JSON.stringify(profile.id) %>;
+
+			const reason = prompt("Why are you reporting this profile?");
+			if(!reason || !reason.trim()) return;
+
+			const response = await fetch(`/report/${profile_id}`, {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ reason: reason.trim() })
+			});
+
+			const data = await response.json().catch(() => ({}));
+
+			if(!response.ok){
+				show_error("Report Failed", response.status, data.error || "Profile has failed to be reported");
+				return;
+			}
+
+			show_error("Report Created", "201", "Profile has been reported", true, false)
+			const span = report_btn.querySelector("span")
+			const computed_styles = window.getComputedStyle(span);
+
+			const transition_time = computed_styles.getPropertyValue('--transition-time').trim();
+
+			span.style.opacity = 0;
+
+			setTimeout(() => {
+				span.textContent = "REPORTED";
+				span.style.opacity = 1;
+			}, transition_time);
+		});
+    });
+</script>
+
 <div class="page">
+	<% if(!is_owner){ %>
+	<button id="report-btn" class="solid-btn" style="pointer-events: <%= has_reported || !is_login ? 'none' : 'all' %>;">
+		<img src="/svg/report.svg">
+
+		<% if(has_reported){ %>
+		<span>REPORTED</span>
+		<% }else if(!is_login){ %>
+		<span>LOGIN TO REPORT</span>
+		<% }else{ %>
+		<span>REPORT</span>
+		<% } %>
+	</button>
+	<% } %>
+
 	<section class="hero <%= profile?.profile_picture_url ? 'has-profile-picture' : '' %> <%= profile?.profile_banner_url ? 'has-banner-picture' : '' %>" style="--bg-mobile: url('<%= profile?.profile_picture_url %>'); --bg-desktop: url('<%= profile?.profile_banner_url %>');">
 		<% if(is_owner){ %>
 			<div class="owner-btn">

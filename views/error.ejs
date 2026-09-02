@@ -2,4 +2,21 @@
 	<link rel="stylesheet" href="../css/error.css">
 </head>
 
-Testing
+<%
+const TITLES = {
+	400: "Illegal Move",
+	401: "Weigh-In Failed",
+	403: "Disqualified",
+	404: "Tapped Out",
+	409: "Split Decision",
+	500: "Technical Knockout"
+};
+const display_title = TITLES[status_code] || "Down Goes The Page";
+%>
+
+<section class="hero">
+	<div class="hero-error">
+		<h1 id="error-title"><%= display_title %></h1>
+		<p id="error-description"><%= message %></p>
+	</div>
+</section>

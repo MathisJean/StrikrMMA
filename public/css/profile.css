@@ -2,8 +2,42 @@
 	display: flex;
 	flex-direction: column;
 
-	flex: 1;
-	height: auto;
+	position: relative;
+
+	height: calc(100% - var(--navbar-height));
+}
+
+#report-btn{
+	display: inline-flex;
+
+	justify-content: center;
+	align-items: center;
+
+	font-family: 'Oswald', sans-serif;
+	font-weight: 500;
+	font-size: 1em;
+
+	gap: 0.5em;
+
+	position: absolute;
+
+	top: 0%;
+	left: 0%;
+
+	padding: 1.25em 1em;
+	margin: 1em;
+
+	z-index: 5;
+}
+
+#report-btn span{
+	--transition-time: 200;
+
+	font-family: 'Oswald', sans-serif;
+
+	white-space: nowrap;
+
+	transition: opacity calc(var(--transition-time) * 1ms) ease-in-out;
 }
 
 .hero{
@@ -243,6 +277,7 @@
 	margin: 0;
 }
 
+#report-btn,
 .content-actions > * > img,
 .content-actions > * > svg{
 	height: 1.25em;
@@ -592,6 +627,7 @@
 		height: 100%;
 	}
 
+	#report-btn img,
 	.content-actions > *{
 		font-size: 1.25em;
 	}

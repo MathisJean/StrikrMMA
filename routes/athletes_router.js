@@ -1,6 +1,6 @@
 
 //Set up libraries
-const { fs, path, express, pool } = require("../libs/requirements");
+const { fs, path, express, pool, errors } = require("../libs/requirements");
 const router = express.Router()
 
 //Setup Router
@@ -28,7 +28,7 @@ router.get("/", async(req, res) => {
  */
 router.get("/:username/settings", async(req, res) => {
 	if(!req.session.user_id){
-		return res.status(401).json({ error: "You must be logged in" });
+		throw errors.unauthorized("You must be logged in", "html");
 	}
 
 	const username = req.params.username;
@@ -36,7 +36,7 @@ router.get("/:username/settings", async(req, res) => {
 	const users = await pool.query(`SELECT * FROM users WHERE username = $1`, [username]);
 
 	if(users.rows.length === 0){
-		return res.status(404).json({ error: "Athlete not found" });
+		throw errors.not_found("Athlete not found", "html");
 	}
 
 	const user = users.rows[0];
@@ -47,12 +47,12 @@ router.get("/:username/settings", async(req, res) => {
 
 	const can_edit = is_owner || (req.session.is_admin && !is_claimed);
 
-	if(!can_edit) return res.status(403).json({ error: "You do not have permission to edit this profile" });
+	if(!can_edit) throw errors.forbidden("You do not have permission to edit this profile", "html");
 
 	const profiles = await pool.query(`SELECT * FROM profiles WHERE user_id = $1 ORDER BY created_at ASC`, [user.id]);
 
 	if(profiles.rows.length === 0){
-		return res.status(404).json({ error: "Athlete not found" });
+		throw errors.not_found("Athlete not found", "html");
 	}
 
 	const profile = profiles.rows[0];
@@ -142,7 +142,7 @@ router.get("/:username", async(req, res) => {
 	const users = await pool.query(`SELECT * FROM users WHERE username = $1`, [username]);
 
 	if(users.rows.length === 0){
-		return res.status(404).json({ error: "Athlete not found" });
+		throw errors.not_found("Athlete not found", "html");
 	}
 
 	const user = users.rows[0];
@@ -150,7 +150,7 @@ router.get("/:username", async(req, res) => {
 	const profiles = await pool.query(`SELECT * FROM profiles WHERE user_id = $1 ORDER BY created_at ASC`, [user.id]);
 
 	if(profiles.rows.length === 0){
-		return res.status(404).json({ error: "Athlete not found" });
+		throw errors.not_found("Athlete not found", "html");
 	}
 
 	const profile = profiles.rows[0];
@@ -205,7 +205,17 @@ router.get("/:username", async(req, res) => {
 	const awards = await pool.query(`SELECT * FROM awards WHERE profile_id = $1 ORDER BY date_earned DESC`, [profile.id]);
 	//const highlights = await pool.query(`SELECT * FROM highlights WHERE profile_id = $1 ORDER BY created_at ASC`, [profile.id]);
 
-	const is_owner = req.session.user_id === profile.user_id;
+	const session_id = req.session.user_id;
+	const is_login = session_id ? true : false;
+	let has_reported = false;
+
+	if(session_id){
+		const reports_results = await pool.query(`SELECT * FROM reports WHERE reported_profile_id = $1 AND reporter_user_id = $2 ORDER BY created_at ASC`, [profile.id, session_id]);
+
+		has_reported = reports_results?.rows[0] ? true : false;
+	}
+
+	const is_owner = session_id === profile.user_id;
 
 	const nickname = profile.nickname ? ` "${profile.nickname}" ` : " ";
 
@@ -213,6 +223,8 @@ router.get("/:username", async(req, res) => {
 		layout: "layout",
 		title: `${profile.first_name}${nickname}${profile.last_name}`,
 		profile,
+		has_reported,
+		is_login,
 		is_owner,
 		is_beta_tester: user.is_beta_tester,
 		is_founding_member: user.is_founding_member,

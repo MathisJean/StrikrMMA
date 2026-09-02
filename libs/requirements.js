@@ -15,34 +15,53 @@ const bcrypt = require('bcrypt');
 
 const session = require("express-session");
 const PgStore = require("connect-pg-simple")(session);
-
 const user_session = require('./middleware/user_session.js');
 
-const mailer = require('./mailer.js');
+const mailer = require('./token.js');
 
 const { upload_cloudinary_image, delete_cloudinary_image } = require('./cloudinary.js');
 
+const errors = require('./errors.js');
+const logger = require('./logger.js');
+
+const { require_admin, require_login, require_guest } = require('./middleware/permissions.js')
+
 //Export everything you want to reuse
 module.exports = {
-  http,
-  os,
-  fs,
-  path,
-  
-  express,
-  expressLayouts,
-  
-  pool,
+	//General
+	http,
+	os,
+	fs,
+	path,
 
-  bcrypt,
+	//Express
+	express,
+	expressLayouts,
 
-  session,
-  PgStore,
+	//Database
+	pool,
 
-  user_session,
+	//Cryptography
+	bcrypt,
 
-  mailer,
+	//Session
+	session,
+	PgStore,
+	user_session,
 
-  upload_cloudinary_image,
-  delete_cloudinary_image
+	//Email
+	mailer,
+
+	//Image Upload
+	upload_cloudinary_image,
+	delete_cloudinary_image,
+
+	//Errors
+	errors,
+	logger,
+
+	//Permissions
+	require_admin,
+	require_login,
+	require_guest
 };
