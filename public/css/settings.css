@@ -313,7 +313,7 @@ select{
 	margin: 0.5em;
 }
 
-#img-view{
+.img-view{
 	display: flex;
 
 	justify-content: center;

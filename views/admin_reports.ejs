@@ -28,7 +28,9 @@
 						<div class="report-parties">
 							<div>
 								<span class="report-label">Reported:</span>
-								<a href="/u/<%= r.reported_username %>/settings"><%= r.reported_first_name %> <%= r.reported_last_name %> (@<%= r.reported_username %>)</a>
+								<!-- The public profile, not /settings: an admin can only open the settings
+								     page for an unclaimed placeholder, so this 403'd for real accounts. -->
+								<a href="/u/<%= r.reported_username %>" target="_blank" rel="noopener"><%= r.reported_first_name %> <%= r.reported_last_name %> (@<%= r.reported_username %>)</a>
 							</div>
 
 							<div>

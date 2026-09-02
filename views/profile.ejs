@@ -9,6 +9,7 @@
 	}
 </style>
 
+<% if(is_login){ %>
 <script defer>
 	document.addEventListener("DOMContentLoaded", () => {
         const report_btn = document.getElementById("report-btn");
@@ -47,23 +48,32 @@
 		});
     });
 </script>
+<% } %>
 
 <div class="page">
 	<% if(!is_owner){ %>
-	<button id="report-btn" class="solid-btn" style="pointer-events: <%= has_reported || !is_login ? 'none' : 'all' %>;">
-		<img src="/svg/report.svg">
-
-		<% if(has_reported){ %>
-		<span>REPORTED</span>
-		<% }else if(!is_login){ %>
-		<span>LOGIN TO REPORT</span>
+		<% if(!is_login){ %>
+		<a id="report-btn" class="solid-btn" href="/auth#login">
+			<img src="/svg/report.svg" alt="">
+			<span>LOGIN TO REPORT</span>
+		</a>
 		<% }else{ %>
-		<span>REPORT</span>
+		<button type="button" id="report-btn" class="solid-btn" style="pointer-events: <%= has_reported ? 'none' : 'all' %>;">
+			<img src="/svg/report.svg" alt="">
+			<span><%= has_reported ? "REPORTED" : "REPORT" %></span>
+		</button>
 		<% } %>
-	</button>
 	<% } %>
 
-	<section class="hero <%= profile?.profile_picture_url ? 'has-profile-picture' : '' %> <%= profile?.profile_banner_url ? 'has-banner-picture' : '' %>" style="--bg-mobile: url('<%= profile?.profile_picture_url %>'); --bg-desktop: url('<%= profile?.profile_banner_url %>');">
+	<%
+		//An empty url('') makes the browser re-request the current page as an image, so the
+		//custom properties are only emitted when there is actually something to load.
+		const hero_backgrounds = [
+			profile?.profile_picture_url ? `--bg-mobile: url('${profile.profile_picture_url}');` : "",
+			profile?.profile_banner_url ? `--bg-desktop: url('${profile.profile_banner_url}');` : ""
+		].filter(Boolean).join(" ");
+	%>
+	<section class="hero <%= profile?.profile_picture_url ? 'has-profile-picture' : '' %> <%= profile?.profile_banner_url ? 'has-banner-picture' : '' %>" style="<%= hero_backgrounds %>">
 		<% if(is_owner){ %>
 			<div class="owner-btn">
 				<a id="setting-btn" href="<%= user.username ? `/u/${user.username}/settings` : '/home' %>">
@@ -103,7 +113,7 @@
 			</div>
 		</div>
 
-		<div class="profile-img <%= profile.profile_picture_url ? 'custom' : 'default' %>" style="background-image: <%= profile.profile_picture_url ? `url(${profile.profile_picture_url});` : 'url(/svg/profile_light.svg);' %>">
+		<div class="profile-img <%= profile.profile_picture_url ? 'custom' : 'default' %>" style="background-image: <%= profile.profile_picture_url ? `url(${profile.profile_picture_url});` : 'url(/svg/profile_light.svg);' %>"></div>
 	</section>
 
 	<section class="content">
@@ -119,24 +129,25 @@
 					<span>Verified</span>
 				</div>
 
+				<!-- Badges are status, not actions: they stay non-interactive like .verified-badge -->
 				<% if(is_beta_tester){ %>
-				<button aria-label="Instagram" class=<%= corner == "red" ? "solid-btn" : "solid2-btn" %> onclick="window.open('https://instagram.com/<%= profile.instagram_url %>', '_blank')">
-					<img src="/svg/test.svg">
+				<div aria-label="Beta tester" class="<%= corner == 'red' ? 'solid-btn' : 'solid2-btn' %> profile-badge">
+					<img src="/svg/test.svg" alt="">
 
 					<span>Beta Tester</span>
-				</button>
+				</div>
 				<% } %>
 
 				<% if(is_founding_member){ %>
-				<button aria-label="Instagram" class=<%= corner == "red" ? "solid-btn" : "solid2-btn" %> onclick="window.open('https://instagram.com/<%= profile.instagram_url %>', '_blank')">
-					<img src="/svg/star.svg">
+				<div aria-label="Founding member" class="<%= corner == 'red' ? 'solid-btn' : 'solid2-btn' %> profile-badge">
+					<img src="/svg/star.svg" alt="">
 
 					<span>Founding Member</span>
-				</button>
+				</div>
 				<% } %>
 
 				<% if(profile.instagram_url){ %>
-				<button aria-label="Instagram" class=<%= corner == "red" ? "solid-btn" : "solid2-btn" %> onclick="window.open('https://instagram.com/<%= profile.instagram_url %>', '_blank')">
+				<a type="button" aria-label="Instagram" class="<%= corner == 'red' ? 'solid-btn' : 'solid2-btn' %>" target="_blank" href="https://instagram.com/<%= encodeURIComponent(profile.instagram_url) %>">
 					<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 22 22" role="img" aria-label="Instagram">
 						<title>Instagram</title>
 						<rect x="3" y="3" width="18" height="18" rx="5" ry="5" fill="none" stroke="currentColor" stroke-width="2"/>
@@ -145,10 +156,10 @@
 					</svg>
 
 					<span>Follow</span>
-				</button>
+				</a>
 				<% } %>
 
-				<button aria-label="Share" class=<%= corner == "red" ? "solid-btn" : "solid2-btn" %> onclick="copy_link()">
+				<button type="button" aria-label="Share" class="<%= corner == 'red' ? 'solid-btn' : 'solid2-btn' %>" onclick="copy_link()">
 					<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-share2 lucide-share-2 size-4" aria-hidden="true">
 						<circle cx="18" cy="5" r="3"></circle>
 						<circle cx="6" cy="12" r="3"></circle>
@@ -220,6 +231,13 @@
 									<div class="bar-visual" style="width: <%= (record.draws / (record.total_fights == 0 ? 1 : record.total_fights)) * 100 %>%;"></div>
 								</div>
 								<h4 class="details-description"><%= record.draws %> DRAWS</h4>
+							</div>
+
+							<div class="details-stat">
+								<div class="stat-bar">
+									<div class="bar-visual" style="width: <%= (record.no_contests / (record.total_fights == 0 ? 1 : record.total_fights)) * 100 %>%;"></div>
+								</div>
+								<h4 class="details-description"><%= record.no_contests %> NO CONTESTS</h4>
 							</div>
 
 							<div class="details-stat">

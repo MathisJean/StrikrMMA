@@ -3,6 +3,18 @@
 const { express, pool, errors, require_login } = require("../libs/requirements");
 const router = express.Router()
 
+//Shown when a profile somehow has no `records` row, so both views can render a zero record
+//without every field needing a null guard. Rebuilt per call so a caller can't mutate it.
+const empty_record = () => ({
+	wins: 0,
+	losses: 0,
+	draws: 0,
+	no_contests: 0,
+	ko: 0,
+	submissions: 0,
+	total_fights: 0
+});
+
 //Setup Router
 
 /**
@@ -81,28 +93,11 @@ router.get("/:username/settings", require_login("html"), async(req, res) => {
 	const weight_classes = await pool.query(`SELECT * FROM weight_classes ORDER BY sort_order ASC`);
 	const martial_arts = await pool.query(`SELECT * FROM martial_arts ORDER BY id ASC`);
 
-	const records = await pool.query(`SELECT * FROM records WHERE profile_id = $1 ORDER BY updated_at ASC`, [profile.id]);
-	let record = {};
+	const records = await pool.query(`SELECT * FROM records WHERE profile_id = $1`, [profile.id]);
+	const record = records.rows[0] || empty_record();
 
-	if(records.rows.length != 0){
-		record = records.rows[0];
-	}
-	else{
-		record["wins"] = 0;
-		record["losses"] = 0;
-		record["draws"] = 0;
-		record["no_contests"] = 0;
-
-		record["ko"] = 0;
-		record["submissions"] = 0;
-
-		record["total_fights"] = 0;
-	}
-
-	const awards = await pool.query(`SELECT * FROM awards WHERE profile_id = $1 ORDER BY date_earned DESC`, [profile.id]);
+	const awards = await pool.query(`SELECT * FROM awards WHERE profile_id = $1 ORDER BY sort_order ASC`, [profile.id]);
 	//const highlights = await pool.query(`SELECT * FROM highlights WHERE profile_id = $1 ORDER BY created_at ASC`, [profile.id]);
-
-	const nickname = profile.nickname ? ` "${profile.nickname}" ` : " ";
 
 	res.render("settings", {
 		layout: "layout",
@@ -148,7 +143,6 @@ router.get("/:username", async(req, res) => {
 	const profile = profiles.rows[0];
 
 	const tags = await pool.query(`SELECT * FROM tags WHERE profile_id = $1 ORDER BY sort_order ASC`, [profile.id]);
-	const weight = await pool.query(`SELECT * FROM tags WHERE profile_id = $1 ORDER BY sort_order ASC`, [profile.id]);
 
 	const badges_result = await pool.query(`
 		SELECT
@@ -177,24 +171,10 @@ router.get("/:username", async(req, res) => {
 
 	const badges = badges_result.rows[0];
 
-	const records = await pool.query(`SELECT * FROM records WHERE profile_id = $1 ORDER BY updated_at ASC`, [profile.id]);
-	let record = {};
+	const records = await pool.query(`SELECT * FROM records WHERE profile_id = $1`, [profile.id]);
+	const record = records.rows[0] || empty_record();
 
-	if(records.rows.length != 0){
-		record = records.rows[0];
-	}
-	else{
-		record["wins"] = 0;
-		record["losses"] = 0;
-		record["draws"] = 0;
-
-		record["ko"] = 0;
-		record["submissions"] = 0;
-
-		record["total_fights"] = 0;
-	}
-
-	const awards = await pool.query(`SELECT * FROM awards WHERE profile_id = $1 ORDER BY date_earned DESC`, [profile.id]);
+	const awards = await pool.query(`SELECT * FROM awards WHERE profile_id = $1 ORDER BY sort_order ASC`, [profile.id]);
 	//const highlights = await pool.query(`SELECT * FROM highlights WHERE profile_id = $1 ORDER BY created_at ASC`, [profile.id]);
 
 	const session_id = req.session.user_id;
@@ -210,10 +190,16 @@ router.get("/:username", async(req, res) => {
 	const is_owner = session_id === profile.user_id;
 
 	const nickname = profile.nickname ? ` "${profile.nickname}" ` : " ";
+	const full_name = `${profile.first_name}${nickname}${profile.last_name}`;
 
 	res.render("profile", {
 		layout: "layout",
-		title: `${profile.first_name}${nickname}${profile.last_name}`,
+		title: full_name,
+
+		//A shared profile link should preview the athlete, not the generic site blurb.
+		og_description: `${full_name.trim()} — ${record.wins}-${record.losses}-${record.draws} record, specs and career highlights on STRIKR.`,
+		og_image: profile.profile_picture_url || res.locals.og_image,
+
 		profile,
 		has_reported,
 		is_login,

@@ -318,7 +318,7 @@ async function update_tags(profile_id, entries){
  * small transaction, independent of every other group in the same PATCH. Never
  * throws — logs and reports failure instead.
  * @param {string} profile_id - Profile the awards belong to.
- * @param {{ title: string, description?: string }[]} entries - Awards to assign.
+ * @param {{ title: string, description?: string }[]} entries - Awards to assign, in display order.
  * @returns {Promise<boolean>} True if the update succeeded.
  */
 async function update_awards(profile_id, entries){
@@ -326,13 +326,19 @@ async function update_awards(profile_id, entries){
 		await pool.with_transaction(async(client) => {
 			await client.query(`DELETE FROM awards WHERE profile_id = $1`, [profile_id]);
 
+			//sort_order is written from the form position, the same way tags are. Ordering by
+			//date_earned instead meant every award sorted on a NULL and came back shuffled.
+			let sort_order = 0;
+
 			for(const entry of entries){
 				const title = entry?.title?.trim();
 				if(title){
 					await client.query(
-						`INSERT INTO awards(profile_id, title, description) VALUES($1, $2, $3)`,
-						[profile_id, title, entry.description?.trim() || null]
+						`INSERT INTO awards(profile_id, title, description, sort_order) VALUES($1, $2, $3, $4)`,
+						[profile_id, title, entry.description?.trim() || null, sort_order]
 					);
+
+					sort_order++;
 				}
 			}
 		});
@@ -461,12 +467,11 @@ router.delete("/delete-account", require_login("json"), async(req, res) => {
 			[req.session.user_id]
 		);
 
-		const profile_id = profile.rows.map(p => p.id);
-		const highlights = profile_id.length > 0 ? await client.query(`SELECT video_url FROM highlights WHERE profile_id = ANY($1)`, [profile_id]) : { rows: [] };
-
+		//TODO: Collect highlight video_urls here too once the highlights feature ships. The
+		//table does not currently exist, and querying it made every account deletion fail.
 		await client.query(`DELETE FROM users WHERE id = $1`, [req.session.user_id]);
 
-		return [...profile.rows.flatMap(p => [p.profile_picture_url, p.profile_banner_url]), ...highlights.rows.map(h => h.video_url)].filter(Boolean);
+		return profile.rows.flatMap(p => [p.profile_picture_url, p.profile_banner_url]).filter(Boolean);
 	});
 
 	await Promise.all(media_urls.map(url =>

@@ -17,20 +17,22 @@
 		<link rel="stylesheet" href="/css/inputs.css">
 		<link rel="stylesheet" href="/css/navbar.css">
 
-		<meta property="og:title" content="STRIKR MMA" />
-		<meta property="og:description" content="The Link in Bio Made for Combat Athletes" />
+		<meta name="description" content="<%= locals.og_description %>" />
+		<link rel="canonical" href="<%= locals.canonical_url %>" />
 
-		<!-- TODO: Change -->
-		<meta property="og:image" content="https://www.mathisjean.me/img/this_is_me_4.jpg" />
-		<meta property="og:url" content="https://www.mathisjean.me/error" />
+		<meta property="og:site_name" content="STRIKR" />
+		<meta property="og:title" content="<%= `STRIKR | ${title}` %>" />
+		<meta property="og:description" content="<%= locals.og_description %>" />
+		<meta property="og:image" content="<%= locals.og_image %>" />
+		<meta property="og:url" content="<%= locals.canonical_url %>" />
 		<meta property="og:type" content="website" />
 
-		<meta name="twitter:card" content="summary_large_image" />
-		<meta name="twitter:title" content="STRIKR MMA" />
-
-		<!-- TODO: Change -->
-		<meta name="twitter:description" content="The Link in Bio Made for Combat Athletes" />
-		<meta name="twitter:image" content="https://www.mathisjean.me/img/this_is_me_4.jpg" />
+		<!-- TODO: Swap to summary_large_image once a purpose-built 1200x630 share card exists;
+		     the logo is square and gets cropped badly in a large card. -->
+		<meta name="twitter:card" content="summary" />
+		<meta name="twitter:title" content="<%= `STRIKR | ${title}` %>" />
+		<meta name="twitter:description" content="<%= locals.og_description %>" />
+		<meta name="twitter:image" content="<%= locals.og_image %>" />
 	</head>
 
 	<body>
@@ -48,7 +50,8 @@
 
 		<!-- Global JS -->
 		<script>
-			const USER_ID = <%- (typeof profile !== 'undefined' && profile?.id) ? JSON.stringify(profile.id) : 'null' %>;
+			//The id of the profile being viewed, which is not necessarily the viewer's own.
+			const PROFILE_ID = <%- (typeof profile !== 'undefined' && profile?.id) ? JSON.stringify(profile.id) : 'null' %>;
 		</script>
 
 		<script type="module" defer src="/js/global.js"></script>

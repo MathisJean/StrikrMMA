@@ -1,5 +1,7 @@
 <head>
-	<link rel="stylesheet" href="../css/error.css">
+	<!-- Absolute, not relative: a 404 at /u/foo/settings resolved "../css" against the failing
+	     URL and asked for /u/css/error.css, so the error page rendered unstyled. -->
+	<link rel="stylesheet" href="/css/error.css">
 </head>
 
 <%

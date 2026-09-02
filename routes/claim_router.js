@@ -19,13 +19,13 @@ router.get("/", async(req, res) => {
 	const { token } = req.query;
 
 	if(!token){
-		return res.render("claim", { layout: "layout", title: "Claim Profile", state: "invalid", profile: null, token: "" });
+		return res.render("claim", { layout: "layout", title: "Claim", state: "invalid", profile: null, token: "" });
 	}
 
 	const token_row = await mailer.peek_token({ raw_token: token, purpose: "profile_claim" });
 
 	if(!token_row){
-		return res.render("claim", { layout: "layout", title: "Claim Profile", state: "invalid", profile: null, token });
+		return res.render("claim", { layout: "layout", title: "Claim", state: "invalid", profile: null, token });
 	}
 
 	const profile_result = await pool.query(
@@ -34,10 +34,10 @@ router.get("/", async(req, res) => {
 	);
 
 	if(profile_result.rows.length === 0 || profile_result.rows[0].claimed){
-		return res.render("claim", { layout: "layout", title: "Claim Profile", state: "already_claimed", profile: null, token });
+		return res.render("claim", { layout: "layout", title: "Claim", state: "already_claimed", profile: null, token });
 	}
 
-	return res.render("claim", { layout: "layout", title: "Claim Profile", state: "ready", profile: profile_result.rows[0], token });
+	return res.render("claim", { layout: "layout", title: "Claim", state: "ready", profile: profile_result.rows[0], token });
 });
 
 /**
@@ -139,16 +139,14 @@ router.post("/decline", async(req, res) => {
 			[token_row.user_id]
 		);
 
-		const profile_id = profile.rows.map(p => p.id);
-
-		const highlights = profile_id.length > 0 ? await client.query(`SELECT video_url FROM highlights WHERE profile_id = ANY($1)`, [profile_id]) : { rows: [] };
-
+		//TODO: Collect highlight video_urls here too once the highlights feature ships. The
+		//table does not currently exist, and querying it made every decline fail.
 		const deleted = await client.query(`DELETE FROM users WHERE id = $1 AND claimed = false RETURNING id`, [token_row.user_id]);
 
 		//Nothing was deleted, so nothing is orphaned — leave the media alone.
 		if(deleted.rows.length === 0) return [];
 
-		return [...profile.rows.flatMap(p => [p.profile_picture_url, p.profile_banner_url]), ...highlights.rows.map(h => h.video_url)].filter(Boolean);
+		return profile.rows.flatMap(p => [p.profile_picture_url, p.profile_banner_url]).filter(Boolean);
 	});
 
 	await Promise.all(media_urls.map(url =>

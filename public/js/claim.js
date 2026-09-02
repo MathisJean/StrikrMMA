@@ -1,4 +1,6 @@
 
+import { attach_field_checks } from "/js/field_checks.js";
+
 const claim_form = document.getElementById("claim-form");
 const decline_btn = document.getElementById("claim-decline-btn");
 
@@ -11,112 +13,11 @@ const email_status = document.getElementById("email-status");
 const password_input = document.getElementById("password-input");
 const password_status = document.getElementById("password-status");
 
-const username_regex = /^[a-zA-Z0-9_-]{3,30}$/;
-const reserved_usernames = ["admin", "api", "athletes", "support", "null", "undefined", "system", "u", "true", "false", "home", "explore", "error", "auth", "claim", "upload", "profile"];
-
-/**
- * Wraps a function so repeated calls within `delay` ms collapse into a single trailing call.
- * @param {Function} func - Function to debounce.
- * @param {number} [delay=350] - Delay in milliseconds.
- * @returns {Function} Debounced version of func.
- */
-function debounce(func, delay = 350){
-	let timeout_id;
-	return (...args) => {
-		clearTimeout(timeout_id);
-		timeout_id = setTimeout(() => func.apply(this, args), delay);
-	};
-}
-
-/**
- * Updates a field's status icon and dataset flag.
- * @param {HTMLElement} status_el - Status icon element.
- * @param {HTMLElement} input_el - Input element.
- * @param {boolean} is_valid - Whether the field is currently valid.
- * @returns {void}
- */
-function set_field_status(status_el, input_el, is_valid){
-	status_el.style.backgroundImage = is_valid ? "url('/svg/checkmark.svg')" : "url('/svg/cancel.svg')";
-	input_el.dataset.status = is_valid ? "y" : "n";
-}
-
-/**
- * Checks the current username input against format rules and server-side availability.
- * @returns {Promise<void>}
- */
-async function check_username_availability(){
-	const username = username_input.value.trim();
-
-	if(!username){
-		username_status.style.backgroundImage = "";
-		username_input.dataset.status = "";
-		return;
-	}
-
-	if(username.length < 3 || !username_regex.test(username) || reserved_usernames.includes(username.toLowerCase())){
-		set_field_status(username_status, username_input, false);
-		return;
-	}
-
-	try{
-		const response = await fetch(`/auth/signup-availability?username=${encodeURIComponent(username)}`);
-		const data = await response.json();
-		set_field_status(username_status, username_input, response.ok && Boolean(data.username_available));
-	}
-	catch(err){
-		set_field_status(username_status, username_input, false);
-		console.error("Check failed:", err);
-	}
-}
-
-/**
- * Checks the current email input against basic validity and server-side availability.
- * @returns {Promise<void>}
- */
-async function check_email_availability(){
-	const email = email_input.value.trim();
-
-	if(!email){
-		email_status.style.backgroundImage = "";
-		email_input.dataset.status = "";
-		return;
-	}
-
-	if(!email_input.checkValidity()){
-		set_field_status(email_status, email_input, false);
-		return;
-	}
-
-	try{
-		const response = await fetch(`/auth/signup-availability?email=${encodeURIComponent(email)}`);
-		const data = await response.json();
-		set_field_status(email_status, email_input, response.ok && Boolean(data.email_available));
-	}
-	catch(err){
-		set_field_status(email_status, email_input, false);
-		console.error("Check failed:", err);
-	}
-}
-
-/**
- * Checks the current password input against the minimum length requirement.
- * @returns {void}
- */
-function check_password_availability(){
-	const password = password_input.value;
-
-	if(!password){
-		password_status.style.backgroundImage = "";
-		password_input.dataset.status = "";
-		return;
-	}
-
-	set_field_status(password_status, password_input, password.length >= 8);
-}
-
-username_input?.addEventListener("input", debounce(check_username_availability, 350));
-email_input?.addEventListener("input", debounce(check_email_availability, 350));
-password_input?.addEventListener("input", debounce(check_password_availability, 350));
+attach_field_checks({
+	username_input, username_status,
+	email_input, email_status,
+	password_input, password_status
+});
 
 claim_form?.addEventListener("submit", event => accept_claim(event));
 

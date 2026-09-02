@@ -1,26 +1,37 @@
 
 //Set up libraries
 require('dotenv').config();
-const { http, os, fs, path, express, expressLayouts, pool, session, PgStore, user_session, mailer, logger } = require('./libs/requirements');
+const { http, os, path, express, expressLayouts, pool, session, PgStore, user_session, mailer, logger } = require('./libs/requirements');
 const { not_found_handler, error_handler } = require('./libs/middleware/error_handler');
 const app = express();
 
-let host = "localhost";
 let port = process.env.PORT || 3000;
 
-//Get dymamic IP address
-const networkInterfaces = os.networkInterfaces();
+/**
+ * Finds the machine's LAN address, so the startup line can be opened from a phone on the
+ * same network. Only used for display — the server binds to every interface.
+ * @returns {string} The first non-internal IPv4 address, or "localhost" if there is none.
+ */
+function get_lan_address(){
+	for(const iface of Object.values(os.networkInterfaces())){
+		for(const iface_info of iface){
+			if(iface_info.family === "IPv4" && !iface_info.internal){
+				return iface_info.address;
+			}
+		}
+	}
 
-for(const iface of Object.values(networkInterfaces)){
-	for(const ifaceInfo of iface){
-		if(ifaceInfo.family === "IPv4" && !ifaceInfo.internal){
-			host = ifaceInfo.address;
-		};
-	};
-};
+	return "localhost";
+}
+
+const lan_address = get_lan_address();
 
 app.use(express.urlencoded({ limit: "10mb", extended: true }));
-app.use(express.static('public'));
+
+//__dirname-relative, not cwd-relative: starting the server from any other directory
+//used to serve no static files and find no views.
+app.use(express.static(path.join(__dirname, 'public')));
+app.set("views", path.join(__dirname, "views"));
 app.use(expressLayouts);
 app.use(session({ //TODO: Change for HTTPS
 	store: new PgStore({
@@ -38,8 +49,18 @@ app.use(session({ //TODO: Change for HTTPS
 	}
 }));
 
+const BASE_URL = process.env.APP_BASE_URL || `http://localhost:${port}`;
+
 app.use((req, res, next) => {
 	res.locals.title = "The link in bio for fighters"; // default title for all pages
+
+	//Social-preview defaults. Pages that describe something specific (an athlete profile)
+	//can override these in their own view.
+	res.locals.base_url = BASE_URL;
+	res.locals.canonical_url = `${BASE_URL}${req.originalUrl.split("?")[0]}`;
+	res.locals.og_image = `${BASE_URL}/logo/strikr_logo_no_margin.png`;
+	res.locals.og_description = "The Link in Bio Made for Combat Athletes";
+
 	next();
 });
 
@@ -119,7 +140,8 @@ setInterval(() => {
 
 const http_server = http.createServer(app);
 
-//Start up server
-http_server.listen(port, host, () => {
-  logger.info(`Server running at http://${host}:${port} close it with CTRL + C`);
+//Start up server. Binding every interface rather than only the LAN address keeps
+//http://localhost working alongside access from other devices on the network.
+http_server.listen(port, () => {
+	logger.info(`Server running at http://localhost:${port} (LAN: http://${lan_address}:${port}) close it with CTRL + C`);
 });

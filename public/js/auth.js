@@ -1,4 +1,6 @@
 
+import { attach_field_checks, USERNAME_REGEX, RESERVED_USERNAMES } from "/js/field_checks.js";
+
 const auth_container = document.querySelector(".section-auth");
 const visual_container = document.querySelector(".section-visual");
 const login_switch_btn = document.getElementById("login-switch");
@@ -78,13 +80,13 @@ async function login(event){
 		const result = await response.json().catch(() => ({}));
 
 		if(!response.ok){
-			const error = new Error(result.message || "An unexpected error occurred.");
+			//The server replies with { error }, so that is the field to read.
+			const error = new Error(result.error || "An unexpected error occurred.");
 			error.status = response.status;
-			error.details = result.error || result.message || "Signup failed.";
+			error.details = result.error || "Login failed.";
 			throw error;
 		}
 
-		//Redirect or handle successful signup here
 		window.location.href = "/u/" + result.username;
 	}
 	catch(err){
@@ -110,149 +112,11 @@ const email_status = document.getElementById("email-status");
 const password_input = document.getElementById("password-input");
 const password_status = document.getElementById("password-status");
 
-/**
- * Wraps a function so repeated calls within `delay` ms collapse into a single trailing call.
- * @param {Function} func - Function to debounce.
- * @param {number} [delay=350] - Delay in milliseconds.
- * @returns {Function} Debounced version of func.
- */
-function debounce(func, delay = 350){
-	let timeout_id;
-	return (...args) => {
-		clearTimeout(timeout_id);
-		timeout_id = setTimeout(() => func.apply(this, args), delay);
-	};
-}
-
-const username_regex = /^[a-zA-Z0-9_-]{3,30}$/;
-const reserved_usernames = ["admin", "api", "athletes", "support", "null", "undefined", "system", "u", "true", "false", "home", "explore", "error", "auth", "about us", "upload", "profile"];
-
-/**
- * Checks the current username input against format rules and server-side availability.
- * @returns {Promise<void>}
- */
-async function check_username_availability(){
-	const username = username_input.value.trim();
-
-	if(!username){
-		username_status.style.backgroundImage = "";
-		username_input.dataset.status = "";
-		return;
-	}
-
-	if(username.length < 3 || !username_regex.test(username) || reserved_usernames.includes(username.toLowerCase())){
-		set_username_status(false);
-		return;
-	}
-
-	try{
-		const response = await fetch(`/auth/signup-availability?username=${encodeURIComponent(username)}`);
-
-		if(!response.ok){
-			set_username_status(false);
-			return;
-		}
-
-		const data = await response.json();
-		set_username_status(Boolean(data.username_available));
-	}
-	catch(err){
-		set_username_status(false);
-		console.error("Check failed:", err);
-	}
-}
-
-/**
- * Updates the username field's status icon and dataset flag.
- * @param {boolean} is_valid - Whether the username is valid and available.
- * @returns {void}
- */
-function set_username_status(is_valid){
-	username_status.style.backgroundImage = is_valid ? "url('/svg/checkmark.svg')" : "url('/svg/cancel.svg')";
-	username_input.dataset.status = is_valid ? "y" : "n";
-}
-
-username_input.addEventListener("input", debounce(check_username_availability, 350));
-
-/**
- * Checks the current email input against basic validity and server-side availability.
- * @returns {Promise<void>}
- */
-async function check_email_availability(){
-	const email = email_input.value.trim();
-
-	if(!email){
-		email_status.style.backgroundImage = "";
-		email_input.dataset.status = "";
-		return;
-	}
-
-	if(email.length < 5 || !email_input.checkValidity()){
-		set_email_status(false);
-		return
-	}
-
-	try{
-		const response = await fetch(`/auth/signup-availability?email=${encodeURIComponent(email)}`);
-
-		if(!response.ok){
-			set_email_status(false);
-			return;
-		}
-
-		const data = await response.json();
-		set_email_status(Boolean(data.email_available));
-	}
-	catch(err){
-		set_email_status(false);
-		console.error("Check failed:", err);
-	}
-}
-
-/**
- * Updates the email field's status icon and dataset flag.
- * @param {boolean} is_valid - Whether the email is valid and available.
- * @returns {void}
- */
-function set_email_status(is_valid){
-	email_status.style.backgroundImage = is_valid ? "url('/svg/checkmark.svg')" : "url('/svg/cancel.svg')";
-	email_input.dataset.status = is_valid ? "y" : "n";
-}
-
-email_input.addEventListener("input", debounce(check_email_availability, 350));
-
-/**
- * Checks the current password input against the minimum length requirement.
- * @returns {void}
- */
-function check_password_availability(){
-	const password = password_input.value;
-
-	if(!password){
-		password_status.style.backgroundImage = "";
-		password_input.dataset.status = "";
-		return;
-	}
-
-	if(password.length < 8){
-		set_password_status(false);
-	}
-	else{
-		set_password_status(true);
-	}
-}
-
-/**
- * Updates the password field's status icon and dataset flag.
- * @param {boolean} is_valid - Whether the password meets the length requirement.
- * @returns {void}
- */
-function set_password_status(is_valid){
-	password_status.style.backgroundImage = is_valid ? "url('/svg/checkmark.svg')" : "url('/svg/cancel.svg')";
-	password_input.dataset.status = is_valid ? "y" : "n";
-}
-
-password_input.addEventListener("input", debounce(check_password_availability, 350));
+attach_field_checks({
+	username_input, username_status,
+	email_input, email_status,
+	password_input, password_status
+});
 
 signup_form.addEventListener("submit", event => signup(event));
 
@@ -292,13 +156,13 @@ async function signup(event){
 	}
 
 	//2. Character format check
-	if(!username_regex.test(user_username)){
+	if(!USERNAME_REGEX.test(user_username)){
 		show_error("Registration Failed", "400", "Username can only contain letters, numbers, underscores, and hyphens");
 		return;
 	}
 
 	//3. Reserved keyword check
-	if(reserved_usernames.includes(user_username.toLowerCase())){
+	if(RESERVED_USERNAMES.includes(user_username.toLowerCase())){
 		show_error("Registration Failed", "400", "This username is reserved and cannot be registered");
 		return;
 	}
@@ -320,7 +184,6 @@ async function signup(event){
 	}
 
 	const payload = JSON.stringify({
-		id: "",
 		corner: user_corner,
 		first_name: user_first_name,
 		last_name: user_last_name,
@@ -341,13 +204,12 @@ async function signup(event){
 		const result = await response.json().catch(() => ({}));
 
 		if(!response.ok){
-			const error = new Error(result.message || "An unexpected error occurred.");
+			const error = new Error(result.error || "An unexpected error occurred.");
 			error.status = response.status;
-			error.details = result.error || result.message || "Signup failed.";
+			error.details = result.error || "Signup failed.";
 			throw error;
 		}
 
-		//Redirect or handle successful signup here
 		window.location.href = "/u/" + user_username;
 	}
 	catch(err){

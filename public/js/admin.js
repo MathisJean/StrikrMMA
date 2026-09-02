@@ -135,7 +135,7 @@ async function copy_claim_link(row){
 	}
 	catch(err){
 		console.error("Fallback copy failed:", err);
-		show_error("Failed to copy link", "", "");
+		show_error("Failed to copy link", "", "", false);
 	}
 }
 

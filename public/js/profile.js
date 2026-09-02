@@ -38,7 +38,8 @@ async function copy_link(){
 	if(navigator.clipboard && window.isSecureContext){
 		try{
 			await navigator.clipboard.writeText(current_url);
-			show_error("Copied to clipboard", "", "");
+			//is_serverside/is_error both false — this is a success, not a red HTTP error toast.
+			show_error("Copied to clipboard", "", "", false, false);
 			return;
 		}
 		catch(err){
@@ -70,6 +71,6 @@ async function copy_link(){
 	}
 	catch(err){
 		console.error("Fallback copy failed:", err);
-		show_error("Failed to copy link", "", "");
+		show_error("Failed to copy link", "", "", false);
 	}
 }

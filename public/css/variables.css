@@ -42,8 +42,13 @@ html{
 	--grid-size: 5em;
 }
 
-[data-theme="dark"]{
-	--bg: #1a1a1a;
-	--card-bg: #202020;
-	--text: #f5f5f5;
-}
+/*
+	TODO: Dark mode. The block that used to live here was unreachable — layout.ejs hardcodes
+	data-theme="light" — and it only redefined --bg/--card-bg/--text, while the rest of the
+	stylesheets set colours literally (rgb(10,10,10), #ffffff, white, ...). Switching it on as
+	written produced unreadable contrast, so it is removed rather than left as dead code.
+
+	Doing this properly means: tokenise the remaining literal colours here first, then drive the
+	theme from both a [data-theme="dark"] attribute and @media (prefers-color-scheme: dark),
+	and drop the hardcoded attribute in layout.ejs.
+*/

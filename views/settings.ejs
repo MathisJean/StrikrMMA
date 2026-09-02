@@ -25,17 +25,17 @@
 			<header class="header">
 				<h1>SETTINGS</h1>
 
-				<label class="drop-area" data-group="profiles" data-field="profile_banner_url" data-initialImage="<%= profile.profile_banner_url || '' %>">
+				<label class="drop-area" data-group="profiles" data-field="profile_banner_url" data-initial-image="<%= profile.profile_banner_url || '' %>">
 					<input type="file" name="profile_banner_url" class="filepond">
-					<img id="img-view" src="/svg/image.svg" alt="Preview">
+					<img class="img-view" src="/svg/image.svg" alt="Banner preview">
 				</label>
 			</header>
 
 			<!-- Basic Info -->
 			<form id="profile-form" class="section" action="upload/profile" method="POST" enctype="multipart/form-data">
-				<label class="drop-area" data-group="profiles" data-field="profile_picture_url" data-initialImage="<%= profile.profile_picture_url || '' %>">
-					<input type="file" name="profile_pic_url" class="filepond">
-					<img id="img-view" src="/svg/image.svg" alt="Preview">
+				<label class="drop-area" data-group="profiles" data-field="profile_picture_url" data-initial-image="<%= profile.profile_picture_url || '' %>">
+					<input type="file" name="profile_picture_url" class="filepond">
+					<img class="img-view" src="/svg/image.svg" alt="Profile picture preview">
 				</label>
 
 				<div class="profile-info">

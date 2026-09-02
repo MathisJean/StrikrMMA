@@ -37,6 +37,17 @@ function error_handler(err, req, res, next){
 		err = new AppError(400, MULTER_MESSAGES[err.code], "json");
 	}
 
+	//body-parser rejects malformed or oversized bodies before any route runs. Those errors
+	//already carry their own 4xx status and are marked safe to expose, but they are not
+	//AppErrors, so they used to be reported as 500s and logged as server faults.
+	const body_status = err?.status || err?.statusCode;
+
+	if(err?.expose === true && body_status >= 400 && body_status < 500){
+		const message = err.type === "entity.too.large" ? "Request body is too large" : "Malformed request body";
+
+		err = new AppError(body_status, message, "json");
+	}
+
 	const is_operational = err instanceof AppError;
 	const status_code = is_operational ? err.status_code : 500;
 	const message = is_operational ? err.message : "Something went wrong.";

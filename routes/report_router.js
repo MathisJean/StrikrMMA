@@ -25,14 +25,14 @@ router.post('/:id', async(req, res) => {
 	if(profile.rows.length === 0) throw errors.not_found("Profile not found");
 	if(profile.rows[0].user_id === reporter_id) throw errors.forbidden("You cannot report yourself");
 
-	await pool.with_transaction(async(client) => {
-		await client.query(
-			`INSERT INTO reports (reported_profile_id, reporter_user_id, reason)
-			 VALUES ($1, $2, $3)
-			 ON CONFLICT (reported_profile_id, reporter_user_id) DO NOTHING`,
-			[reported_id, reporter_id, reason.trim()]
-		);
-	});
+	//A single statement is already atomic — no transaction needed. The unique constraint on
+	//(reported_profile_id, reporter_user_id) makes a repeat report a no-op rather than an error.
+	await pool.query(
+		`INSERT INTO reports (reported_profile_id, reporter_user_id, reason)
+		 VALUES ($1, $2, $3)
+		 ON CONFLICT (reported_profile_id, reporter_user_id) DO NOTHING`,
+		[reported_id, reporter_id, reason.trim()]
+	);
 
 	return res.status(201).json({ success: true });
 });

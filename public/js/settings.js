@@ -42,7 +42,7 @@ document.addEventListener("DOMContentLoaded", () => {
 		const input = container.querySelector(".filepond");
 		if(!input) return;
 
-		const initial_url = container.dataset.initialimage;
+		const initial_url = container.dataset.initialImage;
 
 		FilePond.create(input, {
 			stylePanelLayout: "integrated",
@@ -246,7 +246,7 @@ profile_form.addEventListener("submit", async(event) => {
 			return;
 		}
 
-		changes.id = USER_ID;
+		changes.id = PROFILE_ID;
 
 		form_data.append("json", JSON.stringify(changes));
 

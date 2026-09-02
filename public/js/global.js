@@ -1,18 +1,8 @@
-//-- URL Manipulation --//
-if(window.location.hash === '#login' || window.location.hash === '#signup'){
-	//Strips the hash from the URL bar without causing a page reload
-	history.replaceState(null, document.title, window.location.pathname + window.location.search);
-}	
 
 window.addEventListener("DOMContentLoaded", async() => {
-	//Clean Search Parameters on Refresh
-	const current_url = new URL(window.location.href);
-
-	current_url.searchParams.delete("search");
-	current_url.searchParams.delete("page");
-	current_url.searchParams.delete("limit");
-
-	window.history.replaceState({}, "", current_url.pathname + current_url.search + current_url.hash);
+	//Clean Search Parameters on Refresh. build_search_url is defined further down but
+	//hoisted, and this only runs on DOMContentLoaded, so it is available by then.
+	window.history.replaceState({}, "", build_search_url());
 });
 
 //-- Dynamic viewport height --//
@@ -67,9 +57,13 @@ async function logout(){
 		const response = await fetch("/api/logout", { method: "POST" });
 
 		if(!response.ok){
-			const error = new Error(response.message || "Logout Failed");
+			//The message lives in the JSON body — reading it off the Response itself
+			//always yielded undefined, so every failure read as a bare "Please Try Again".
+			const result = await response.json().catch(() => ({}));
+
+			const error = new Error(result.error || "Logout Failed");
 			error.status = response.status;
-			error.details = response.error || response.message || "Please Try Again";
+			error.details = result.error || "Please Try Again";
 			throw error;
 		}
 
@@ -138,12 +132,54 @@ const pagination = document.querySelector(".pagination");
 const search_input = document.querySelector('.nav-input-wrapper input[type="search"]');
 const clear_btn = document.getElementById("search-clear");
 
-const search_url = new URL(window.location.href);
-
 const MAX_CACHE_ENTRIES = 30;
 let cached_results = {};
 let page = 1;
 let debounce_timeout;
+
+//The only query parameters the search bar owns. Everything else in the query string
+//belongs to the page itself (?token= on /claim, for one) and must survive untouched.
+const SEARCH_PARAM_KEYS = ["search", "page", "limit"];
+
+/**
+ * Rewrites only the search bar's own query parameters on the current URL, leaving every
+ * other parameter and the hash exactly as they were.
+ *
+ * Order matters: a URL is `path?query#hash`. Serialising it as path + hash + query buries
+ * the query inside the fragment, so `/claim?token=x#s` would come back as
+ * `/claim#s?token=x` and the token would stop being readable as a query parameter.
+ * @param {{search: string, page: number, limit: number}} [values] - Values to set; omit to remove them.
+ * @returns {string} A same-origin URL suitable for history.pushState / replaceState.
+ */
+function build_search_url(values){
+	const url = new URL(window.location.href);
+
+	for(const key of SEARCH_PARAM_KEYS){
+		if(values && values[key] !== undefined && values[key] !== null) url.searchParams.set(key, values[key]);
+		else url.searchParams.delete(key);
+	}
+
+	return `${url.pathname}${url.search}${url.hash}`;
+}
+
+//Set only by an explicit page change. Typing, focusing, or pressing Enter re-renders the
+//same search in place, so those replace the current entry instead of stacking a new one —
+//otherwise a five-letter query left five entries to back out of.
+let push_next_history_entry = false;
+
+/**
+ * Records the current search in browser history. The single place that writes it, so a
+ * search cannot accidentally leave two entries behind.
+ * @param {string} url - URL to record.
+ * @param {object} state - History state to store alongside it.
+ * @returns {void}
+ */
+function update_history(url, state){
+	if(push_next_history_entry) history.pushState(state, "", url);
+	else history.replaceState(state, "", url);
+
+	push_next_history_entry = false;
+}
 
 /**
  * Returns how many search results to request per page for the current viewport.
@@ -168,8 +204,6 @@ function hide_pagination(hiding = true){
 
 //Show and hide results menu
 search_input.addEventListener("focus", () => {
-	console.log("test")
-
 	if(search_input.value === "") hide_pagination();
 	else hide_pagination(false);
 
@@ -183,12 +217,7 @@ search_input.addEventListener("blur", () => {
 
 	close_mobile_search();
 
-	const current_url = new URL(window.location.href);
-	current_url.searchParams.delete("search");
-	current_url.searchParams.delete("page");
-	current_url.searchParams.delete("limit");
-
-	window.history.replaceState({}, "", current_url.pathname + current_url.search + current_url.hash);
+	window.history.replaceState({}, "", build_search_url());
 });
 
 search_menu.addEventListener("mousedown", (e) => {
@@ -200,12 +229,7 @@ clear_btn.addEventListener("click", () => {
 
 	close_mobile_search();
 
-	const current_url = new URL(window.location.href);
-	current_url.searchParams.delete("search");
-	current_url.searchParams.delete("page");
-	current_url.searchParams.delete("limit");
-
-	window.history.replaceState({}, "", current_url.pathname + current_url.search + current_url.hash);
+	window.history.replaceState({}, "", build_search_url());
 });
 
 const bg_observer = new IntersectionObserver(
@@ -218,12 +242,14 @@ const bg_observer = new IntersectionObserver(
 
 			if(bg){
 				el.style.backgroundImage = `url("${bg}")`;
-				observer.unobserve(el);
+                delete el.dataset.bg;
 			}
+
+			observer.unobserve(el);
 		});
 	},
 	{
-		rootMargin: "200px", //preload before visible
+		rootMargin: "200px 0px", //preload before visible
 		threshold: 0
 	}
 );
@@ -231,6 +257,8 @@ const bg_observer = new IntersectionObserver(
 search_input.addEventListener("input", () => {
 	if(search_input.value === "") hide_pagination();
 	else hide_pagination(false);
+
+	page = 1;
 
 	clearTimeout(debounce_timeout);
 
@@ -248,52 +276,47 @@ search_form.addEventListener("submit", async(event) => {
 	let search = form_data.get("search");
 	search = search === "" ? "*" : search;
 
-	const params = new URLSearchParams({
-		search: search,
-		page: page,
-		limit: limit
-	});
-
-	const current_path = window.location.pathname;
-	const base_hash = (window.location.hash).split("?")[0];
-
-	const url = `${current_path}${base_hash}?${params.toString()}`;
+	//Only the search bar's own parameters are replaced — building a fresh URLSearchParams
+	//dropped whatever else the page had, so searching from /claim?token=... lost the token.
+	const url = build_search_url({ search, page, limit });
 
 	if(cached_results[search] && cached_results[search][page] && cached_results[search][page][limit]){
 		render_users(cached_results[search][page][limit]);
-		history.pushState({ search }, "", url);
+		update_history(url, { search, page });
 		return;
 	}
 
 	const result = await fetch(`/api/athletes?search=${encodeURIComponent(search)}&page=${page}&limit=${limit}`);
+
+	if(!result.ok){
+		show_error("Search Failed", result.status, "Could not load athletes. Please try again.");
+		return;
+	}
+
 	const data = await result.json();
 	const profiles = data.athletes;
 
+	//Evict the oldest term once the cache is full, then store this result either way.
 	if(Object.keys(cached_results).length >= MAX_CACHE_ENTRIES){
 		const oldest = Object.keys(cached_results).shift();
 		delete cached_results[oldest];
-
-		cached_results[search] ??= {};
-		cached_results[search][page] ??= {};
-		cached_results[search][page][limit] = profiles;
-	}
-	else{
-		cached_results[search] ??= {};
-		cached_results[search][page] ??= {};
-		cached_results[search][page][limit] = profiles;
 	}
 
-	render_users(profiles, url, search)
+	cached_results[search] ??= {};
+	cached_results[search][page] ??= {};
+	cached_results[search][page][limit] = profiles;
+
+	render_users(profiles);
+	update_history(url, { search, page });
 });
 
 /**
- * Renders a page of athlete search results into the results grid.
+ * Renders a page of athlete search results into the results grid. History is written by the
+ * submit handler, not here, so rendering the same results twice cannot duplicate an entry.
  * @param {object[]} profiles - Athlete rows to render.
- * @param {string} [url] - URL to push into browser history for this result set.
- * @param {string} [search] - Search term associated with this result set.
  * @returns {void}
  */
-function render_users(profiles, url, search){
+function render_users(profiles){
 	results.innerHTML = "";
 
 	if(profiles.length <= 0){
@@ -311,23 +334,31 @@ function render_users(profiles, url, search){
 	profiles.forEach((profile, index) => {
 		const a = document.createElement("a");
 		a.classList.add("user");
-		a.href = `/u/${profile.username}`
+		a.href = `/u/${encodeURIComponent(profile.username)}`;
 
-		a.innerHTML = `
-		<div class="user-thumb"></div>
-		<div class="user-info">
-			<div class="user-name">
-				${profile.first_name}
-				${profile.nickname ? `"${profile.nickname}"` : ""}
-				${profile.last_name}
-			</div>
-			<div class="user-record">
-				${profile.wins == null ? 0 : profile.wins}W - ${profile.losses == null ? 0 : profile.losses}L - ${profile.decisions == null ? 0 : profile.decisions}D - ${profile.no_contest == null ? 0 : profile.no_contest}NC
-			</div>
-		</div>
-		`
+		const thumb = document.createElement("div");
+		thumb.classList.add("user-thumb");
 
-		const thumb = a.querySelector(".user-thumb");
+		const info = document.createElement("div");
+		info.classList.add("user-info");
+
+		//Built as text nodes rather than an innerHTML template: these are athlete-controlled
+		//strings, and a nickname carrying markup would otherwise run in every searcher's page.
+		const name = document.createElement("div");
+		name.classList.add("user-name");
+		name.textContent = [
+			profile.first_name,
+			profile.nickname ? `"${profile.nickname}"` : "",
+			profile.last_name
+		].filter(Boolean).join(" ");
+
+		const record = document.createElement("div");
+		record.classList.add("user-record");
+		record.textContent = `${profile.wins ?? 0}W - ${profile.losses ?? 0}L - ${profile.draws ?? 0}D - ${profile.no_contests ?? 0}NC`;
+
+		info.append(name, record);
+		a.append(thumb, info);
+
 		thumb.dataset.bg = profile.profile_picture_url ? `${profile.profile_picture_url}` : "/svg/profile_dark.svg";
 
 		bg_observer.observe(thumb);
@@ -335,17 +366,15 @@ function render_users(profiles, url, search){
 		setTimeout(() => a.classList.add("show"), index * 50);
 	})
 
-	if(profiles.length > 0) change_page(profiles, url, search);
+	if(profiles.length > 0) change_page(profiles);
 }
 
 /**
  * Builds and renders the pagination controls for the current search result set.
  * @param {object[]} profiles - Current page of athlete rows (used to read `total_count`).
- * @param {string} url - URL to push into browser history when a page is selected.
- * @param {string} search - Search term associated with this result set.
  * @returns {void}
  */
-function change_page(profiles, url, search){
+function change_page(profiles){
 	pagination.innerHTML = "";
 
 	const total_pages = Math.ceil(profiles[0].total_count / get_search_limit());
@@ -408,14 +437,16 @@ function change_page(profiles, url, search){
 			p.addEventListener("click", () => {
 				page = i;
 
+				//An explicit page change is the one search action worth a history entry,
+				//so the back button steps between pages rather than through keystrokes.
+				push_next_history_entry = true;
+
 				search_form.requestSubmit();
 			})
 
 			pagination.appendChild(p);
 		}
 	});
-
-	history.pushState({ search, page }, "", url);
 }
 
 //-- Mobile Search --//

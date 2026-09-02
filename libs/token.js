@@ -1,7 +1,8 @@
 
 //Set up libraries
 const { send_email } = require("./mailer");
-const crypto = require("crypto");
+//node: prefix so this can only ever resolve to the builtin, never a same-named package.
+const crypto = require("node:crypto");
 const pool = require("./db");
 
 /**
