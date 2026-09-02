@@ -1,5 +1,5 @@
 
-const { express, pool, errors, require_login } = require("../libs/requirements");
+const { express, pool, errors, validation, require_login } = require("../libs/requirements");
 const router = express.Router();
 
 router.use(require_login("json"));
@@ -15,7 +15,7 @@ router.use(require_login("json"));
  */
 router.post('/:id', async(req, res) => {
 	const { reason } = req.body;
-	const reported_id = req.params.id;
+	const reported_id = validation.validate_uuid(req.params.id, "profile id");
 	const reporter_id = req.session.user_id;
 
 	if(!reason?.trim()) throw errors.bad_request("A reason is required");

@@ -23,6 +23,7 @@ const { upload_cloudinary_image, delete_cloudinary_image } = require('./cloudina
 
 const errors = require('./errors.js');
 const logger = require('./logger.js');
+const validation = require('./validation.js');
 
 const { require_admin, require_login, require_guest } = require('./middleware/permissions.js')
 
@@ -59,6 +60,9 @@ module.exports = {
 	//Errors
 	errors,
 	logger,
+
+	//Validation
+	validation,
 
 	//Permissions
 	require_admin,

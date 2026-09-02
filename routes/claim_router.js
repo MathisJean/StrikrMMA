@@ -1,29 +1,11 @@
 
 //Set up libraries
-const { fs, path, express, pool, bcrypt, delete_cloudinary_image, errors } = require("../libs/requirements");
-const mailer = require("../libs/mailer.js");
+//`mailer` here is libs/token.js — the token helpers. libs/mailer.js only exports send_email,
+//so requiring that directly left peek_token/verify_and_consume_token undefined.
+const { express, pool, bcrypt, delete_cloudinary_image, errors, logger, mailer, validation, require_guest } = require("../libs/requirements");
 const router = express.Router();
 
 //Setup Router
-
-/**
- * Middleware requiring an authenticated session with is_admin set.
- * @param {import("express").Request} req - Express request object.
- * @param {import("express").Response} res - Express response object.
- * @param {import("express").NextFunction} next - Express next function.
- * @returns {void}
- */
-function require_guest(req, res, next){
-	if(req.session?.user_id){
-		if(res.locals.user.username){
-			return res.redirect(`/u/${res.locals.user.username}`);
-		}
-
-		return res.redirect("/home");
-	}
-	next();
-}
-
 router.use(require_guest);
 
 /**
@@ -68,11 +50,15 @@ router.get("/", async(req, res) => {
  * @returns {Promise<void>}
  */
 router.post("/accept", async(req, res) => {
-	const { token, username, email, password, corner } = req.body;
+	const { token } = req.body;
 
-	if(!token || !username || !email || !password || !["red", "blue"].includes(corner)){
-		throw errors.bad_request("Missing or invalid fields");
-	}
+	if(!token) throw errors.bad_request("Missing claim token");
+
+	//Same rules as /auth/signup — a claim creates a real account, so it gets the same checks.
+	const corner = validation.validate_corner(req.body.corner);
+	const username = validation.validate_username(req.body.username);
+	const email = validation.validate_email(req.body.email);
+	const password = validation.validate_password(req.body.password);
 
 	const hashed_password = await bcrypt.hash(password, 10);
 
@@ -107,6 +93,14 @@ router.post("/accept", async(req, res) => {
 		}
 
 		return user_result.rows[0].id;
+	}).catch(err => {
+		//The uniqueness checks above race against a concurrent signup; the unique indexes on
+		//lower(username)/lower(email) settle it, so translate their verdict into a conflict.
+		if(err.code === "23505"){
+			throw errors.conflict("That username or email is already registered");
+		}
+
+		throw err;
 	});
 
 	req.session.user_id = user_id;
@@ -131,7 +125,9 @@ router.post("/decline", async(req, res) => {
 		throw errors.bad_request("Missing token");
 	}
 
-	await pool.with_transaction(async(client) => {
+	//The URLs are gathered inside the transaction but destroyed only once it commits —
+	//deleting first meant a rollback left a live profile pointing at missing images.
+	const media_urls = await pool.with_transaction(async(client) => {
 		const token_row = await mailer.verify_and_consume_token({ raw_token: token, purpose: "profile_claim", client });
 
 		if(!token_row){
@@ -146,12 +142,18 @@ router.post("/decline", async(req, res) => {
 		const profile_id = profile.rows.map(p => p.id);
 
 		const highlights = profile_id.length > 0 ? await client.query(`SELECT video_url FROM highlights WHERE profile_id = ANY($1)`, [profile_id]) : { rows: [] };
-		const media_urls = [...profile.rows.flatMap(p => [p.profile_picture_url, p.profile_banner_url]), ...highlights.rows.map(h => h.video_url)].filter(Boolean);
 
-		await Promise.all(media_urls.map(delete_cloudinary_image));
+		const deleted = await client.query(`DELETE FROM users WHERE id = $1 AND claimed = false RETURNING id`, [token_row.user_id]);
 
-		await client.query(`DELETE FROM users WHERE id = $1 AND claimed = false`, [token_row.user_id]);
+		//Nothing was deleted, so nothing is orphaned — leave the media alone.
+		if(deleted.rows.length === 0) return [];
+
+		return [...profile.rows.flatMap(p => [p.profile_picture_url, p.profile_banner_url]), ...highlights.rows.map(h => h.video_url)].filter(Boolean);
 	});
+
+	await Promise.all(media_urls.map(url =>
+		delete_cloudinary_image(url).catch(err => logger.error("Failed to delete media for a declined profile", err))
+	));
 
 	return res.status(200).json({ success: true });
 });

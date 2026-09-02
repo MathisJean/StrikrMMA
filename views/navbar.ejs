@@ -26,7 +26,7 @@
 				<% if(user?.is_admin){ %>
 				<a id="admin-btn" class="solid-btn btn" href="/admin">ADMIN DASHBOARD</a>
 				<% }if(user){ %>
-				<a id="profile-btn" class="btn" href="<%= user.username ? `/u/${user.username.toLowerCase()}` : '' %>" style="background-image: <%= user.profile_picture_url ? `url(${user.profile_picture_url});` : 'url(/svg/profile_light.svg);' %>"></a>
+				<a id="profile-btn" class="btn" href="<%= user.username ? `/u/${user.username}` : '/home' %>" style="background-image: <%= user.profile_picture_url ? `url(${user.profile_picture_url});` : 'url(/svg/profile_light.svg);' %>"></a>
 				<% } else{ %>
 				<a id="join-btn" class="solid-btn btn" href='/auth#login'>JOIN THE FIGHT</a>
 				<% } %>

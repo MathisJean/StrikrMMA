@@ -205,54 +205,38 @@
 	</dialog>
 <% } %>
 
-<!-- Initialized FilePond after DOM nodes are parsed -->
+<!--
+	The baseline settings.js diffs against on save. Every value goes through JSON.stringify,
+	which supplies its own quotes and escapes — interpolating user text straight into a JS
+	string literal let a nickname containing a quote or a </script> run as script.
+	FilePond itself is set up in settings.js; do not create ponds here as well.
+-->
 <script>
-	let initial_state = {
+	let initial_state = <%- JSON.stringify({
 		profiles: {
-			profile_banner_url: "<%- profile.profile_banner_url %>",
-			profile_picture_url: "<%- profile.profile_picture_url %>",
-			nickname: "<%- profile.nickname %>",
-			height_feet: <%- Math.floor(profile.height / 12) %>,
-			height_inches: <%- profile.height % 12 %>,
-			stance: "<%- profile.stance %>",
-			walkout_song: "<%- profile.walkout_song %>",
-			walkout_song_artist: "<%- profile.walkout_song_artist %>",
-			instagram_url: "<%- profile.instagram_url %>",
-			team: "<%- profile.team %>",
-			hometown: "<%- profile.hometown %>"
+			profile_banner_url: profile.profile_banner_url ?? "",
+			profile_picture_url: profile.profile_picture_url ?? "",
+			nickname: profile.nickname ?? "",
+			height_feet: Math.floor((profile.height || 0) / 12),
+			height_inches: (profile.height || 0) % 12,
+			stance: profile.stance ?? "",
+			walkout_song: profile.walkout_song ?? "",
+			walkout_song_artist: profile.walkout_song_artist ?? "",
+			instagram_url: profile.instagram_url ?? "",
+			team: profile.team ?? "",
+			hometown: profile.hometown ?? ""
 		},
 		records: {
-			wins: <%- record.wins %>,
-			losses: <%- record.losses %>,
-			draws: <%- record.draws %>,
-			no_contests: <%- record.no_contests %>,
-			ko: <%- record.ko %>,
-			submissions: <%- record.submissions %>
+			wins: record.wins,
+			losses: record.losses,
+			draws: record.draws,
+			no_contests: record.no_contests,
+			ko: record.ko,
+			submissions: record.submissions
 		},
-		awards: <%- JSON.stringify((awards || []).map(a => ({ title: a.title, description: a.description }))) %>,
-		tags: <%- JSON.stringify((tags || []).map(t => ({ tag_text: t.tag_text }))) %>,
-		profile_weight_classes: <%- JSON.stringify((badges.weight_classes || []).map(w => ({ name: w.name, gender: w.gender }))) %>,
-		profile_martial_arts: <%- JSON.stringify((badges.martial_arts || []).map(m => ({ name: m.name }))) %>
-	};
-
-	document.addEventListener('DOMContentLoaded', () => {
-		FilePond.registerPlugin(
-			FilePondPluginFileValidateType,
-			FilePondPluginImagePreview
-		);
-
-		FilePond.create(document.querySelector('.filepond'), {
-			allowMultiple: false,
-			acceptedFileTypes: ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/heic'],
-			storeAsFile: true,
-			files: [
-				<% if(profile && profile.avatar_url){ %>
-				{
-					source: '<%= profile.avatar_url %>',
-					options: { type: 'local' }
-				}
-				<% } %>
-			]
-		});
-	});
+		awards: (awards || []).map(a => ({ title: a.title ?? "", description: a.description ?? "" })),
+		tags: (tags || []).map(t => ({ tag_text: t.tag_text ?? "" })),
+		profile_weight_classes: (badges.weight_classes || []).map(w => ({ name: w.name, gender: w.gender })),
+		profile_martial_arts: (badges.martial_arts || []).map(m => ({ name: m.name }))
+	}).replace(/</g, "\\u003c") %>;
 </script>

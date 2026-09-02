@@ -1,6 +1,6 @@
 
 //Set up libraries
-const { express, pool, mailer, errors, require_admin } = require("../libs/requirements");
+const { express, pool, mailer, errors, validation, require_admin } = require("../libs/requirements");
 const router = express.Router();
 
 //Setup Router
@@ -121,7 +121,7 @@ router.post("/profiles", async(req, res) => {
  * @returns {Promise<void>}
  */
 router.post("/profiles/:user_id/claim-link", async(req, res) => {
-	const { user_id } = req.params;
+	const user_id = validation.validate_uuid(req.params.user_id, "user id");
 
 	const user_check = await pool.query(`SELECT id, claimed FROM users WHERE id = $1`, [user_id]);
 
@@ -154,7 +154,7 @@ router.post("/profiles/:user_id/claim-link", async(req, res) => {
  * @returns {Promise<void>}
  */
 router.delete("/profiles/:user_id", async(req, res) => {
-	const { user_id } = req.params;
+	const user_id = validation.validate_uuid(req.params.user_id, "user id");
 
 	const deleted = await pool.query(
 		`DELETE FROM users WHERE id = $1 AND claimed = false RETURNING id`,
@@ -185,7 +185,7 @@ const ALLOWED_REPORT_STATUSES = ["reviewed", "dismissed"];
  * @returns {Promise<void>}
  */
 router.patch("/reports/:id", async(req, res) => {
-	const { id } = req.params;
+	const id = validation.validate_uuid(req.params.id, "report id");
 	const { status } = req.body;
 
 	if(!ALLOWED_REPORT_STATUSES.includes(status)){

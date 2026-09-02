@@ -1,6 +1,25 @@
 const profile_form = document.getElementById("profile-form");
 const profile_btn = document.getElementById("profile-btn");
 
+const MAX_UPLOAD_BYTES = 5 * 1024 * 1024; //keep in sync with the multer limit in routes/api_router.js
+const ACCEPTED_IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp", "image/heic", "image/heif"];
+
+//FilePond keeps a picked file at origin INPUT even after it has been saved, so ids of files
+//already persisted are tracked here to stop the next save re-uploading the same image.
+const saved_file_ids = new Set();
+
+//Server-side group keys mapped to what a failure should read as in the toast.
+const GROUP_LABELS = {
+	profiles: "profile",
+	records: "record",
+	profile_weight_classes: "weight classes",
+	profile_martial_arts: "martial arts",
+	tags: "tags",
+	awards: "awards",
+	profile_picture_url: "profile picture",
+	profile_banner_url: "banner"
+};
+
 document.addEventListener("DOMContentLoaded", () => {
 	//Setup tag counters
 	const tags = Array.from(document.querySelectorAll(".tag > .profile-input"));
@@ -11,6 +30,13 @@ document.addEventListener("DOMContentLoaded", () => {
 		update_counter(tag, counters[index]);
 	});
 
+	//This is the only place ponds are created — the settings view must not create its own,
+	//or the same input ends up with two of them and only one carries these options.
+	FilePond.registerPlugin(
+		FilePondPluginFileValidateType,
+		FilePondPluginImagePreview
+	);
+
 	//Initialize Image Inputs
 	document.querySelectorAll(".drop-area").forEach(container => {
 		const input = container.querySelector(".filepond");
@@ -20,6 +46,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
 		FilePond.create(input, {
 			stylePanelLayout: "integrated",
+
+			allowMultiple: false,
+			storeAsFile: true,
+			acceptedFileTypes: ACCEPTED_IMAGE_TYPES,
+			maxFileSize: MAX_UPLOAD_BYTES,
 
 			files: initial_url ? [
 				{
@@ -158,7 +189,10 @@ function get_form_data(){
 			if(pond && pond.getFiles().length > 0){
 				const file_item = pond.getFiles()[0];
 
-				if(file_item.origin === FilePond.FileOrigin.INPUT || file_item.file instanceof File){
+				//Only a file the user actually picked, and hasn't already been saved, counts as
+				//a new upload. The pre-loaded existing image is also a real File once FilePond
+				//fetches it, so testing `instanceof File` re-uploaded it on every single save.
+				if(file_item.origin === FilePond.FileOrigin.INPUT && !saved_file_ids.has(file_item.id)){
 					form_data.append(field, file_item.file);
 					payload[group][field] = file_item.file.name;
 				}
@@ -208,7 +242,7 @@ profile_form.addEventListener("submit", async(event) => {
 		const changes = get_difference(initial_state, current_state);
 
 		if(changes === undefined){
-			show_error("No Changed Made", "", "", false, false);
+			show_error("No Changes Made", "", "", false, false);
 			return;
 		}
 
@@ -224,29 +258,52 @@ profile_form.addEventListener("submit", async(event) => {
 		const data = await response.json();
 
 		if(response.ok){
-			if(data.profile_picture_url !== undefined && data.is_owner) profile_btn.style.backgroundImage = `url('${data.profile_picture_url}'), url('/svg/profile_light.svg')`;
+			const media = data.media || {};
 
+			if(media.profile_picture_url !== undefined && data.is_owner){
+				profile_btn.style.backgroundImage = media.profile_picture_url
+					? `url('${media.profile_picture_url}'), url('/svg/profile_light.svg')`
+					: "url('/svg/profile_light.svg')";
+			}
+
+			const failed_groups = data.failed_groups || [];
+			const failed_uploads = data.failed_uploads || [];
+
+			//Everything that saved is the new baseline, so the next diff only reports what
+			//actually changed after this point. `group` is a key, not the object it names —
+			//iterating it directly walked the characters of the string instead of the fields.
 			Object.keys(initial_state).forEach(group => {
 				if(!current_state[group]) return;
-				if(data.failed_groups.includes(group)) return;
+				if(failed_groups.includes(group)) return;
 
-				if(Array.isArray(group)){
-					for(let i = 0; i < group.length; i++){
-						if(current_state[group][i]) initial_state[group][i] = current_state[group][i];
-					}
+				if(Array.isArray(current_state[group])){
+					initial_state[group] = structuredClone(current_state[group]);
+					return;
 				}
-				else{
-					Object.keys(group).forEach(key => {
-						if(data.failed_uploads.includes(key)) return;
 
-						initial_state[group][key] = current_state[group][key];
-					});
-				}
+				Object.keys(current_state[group]).forEach(key => {
+					if(failed_uploads.includes(key)) return;
+
+					initial_state[group][key] = current_state[group][key];
+				});
 			});
 
-			const failures = [...(data.failed_uploads || []), ...(data.failed_groups || [])];
+			//Media is stored as a URL but submitted as a filename, so the baseline takes the
+			//URL the server actually saved. The pond still holds the picked file, so its id
+			//is remembered too — otherwise the very next save would upload it a second time.
+			Object.keys(media).forEach(field => {
+				initial_state.profiles[field] = media[field] ?? "";
+
+				const pond_input = document.querySelector(`[data-field="${field}"] .filepond`);
+				const pond = pond_input ? FilePond.find(pond_input) : null;
+				const file_item = pond?.getFiles()[0];
+
+				if(file_item) saved_file_ids.add(file_item.id);
+			});
+
+			const failures = [...failed_uploads, ...failed_groups];
 			const failure_list = failures
-				.map(item => item.replace(/_/g, " "))
+				.map(item => GROUP_LABELS[item] || item.replace(/_/g, " "))
 				.join(", ")
 				.toLowerCase()
 				.replace(/, ([^,]*)$/, " and $1");
@@ -255,7 +312,7 @@ profile_form.addEventListener("submit", async(event) => {
 				show_error("Saved With Issues", "422", `Failed to save ${failure_list}`, true, true);
 			}
 			else{
-				show_error("Saved Changed", "", "", false, false);
+				show_error("Saved Changes", "", "", false, false);
 			}
 		}
 		else{

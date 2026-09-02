@@ -1,23 +1,101 @@
 //Set up libraries
-const { fs, path, express, pool, upload_cloudinary_image, delete_cloudinary_image, errors, logger } = require("../libs/requirements");
+const { express, pool, upload_cloudinary_image, delete_cloudinary_image, errors, logger, validation, require_login } = require("../libs/requirements");
 const router = express.Router();
 
 const multer = require("multer");
-const upload = multer({ storage: multer.memoryStorage() });
 
-let profile_picture_url = undefined;
+const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
+const ALLOWED_IMAGE_TYPES = new Set(["image/png", "image/jpeg", "image/webp", "image/heic", "image/heif"]);
+
+const upload = multer({
+	storage: multer.memoryStorage(),
+	limits: {
+		fileSize: MAX_UPLOAD_BYTES,
+		files: 2 //profile picture + banner, the only two media fields on the form
+	},
+	fileFilter: (req, file, cb) => {
+		if(!ALLOWED_IMAGE_TYPES.has(file.mimetype)){
+			return cb(errors.bad_request("Only PNG, JPEG, WebP and HEIC images can be uploaded"));
+		}
+
+		cb(null, true);
+	}
+});
 
 const EDITABLE_FIELDS = {
 	profiles: [
 		"nickname", "stance", "team", "hometown",
 		"walkout_song", "walkout_song_artist",
-		"profile_picture_url", "profile_banner_url", "instagram_url",
-		"height_feet", "height_inches"
+		"profile_picture_url", "profile_banner_url", "instagram_url"
 	],
 	records: [
 		"wins", "losses", "draws", "no_contests", "ko", "submissions"
 	]
 };
+
+//Columns holding a Cloudinary URL. Declared rather than inferred from the incoming value —
+//inferring it treated every *cleared* field as a media field, which sent text columns down
+//the upload/delete path and blew up on the virtual height fields.
+const FILE_FIELDS = new Set(["profile_picture_url", "profile_banner_url"]);
+
+//multer only accepts files under these exact field names, so an unexpected field is
+//rejected outright instead of being read into memory.
+const UPLOAD_FIELDS = [...FILE_FIELDS].map(name => ({ name, maxCount: 1 }));
+
+//Columns that must stay numeric. Every `records` column is NOT NULL, so a cleared input
+//has to land as 0, never NULL.
+const NUMERIC_FIELDS = {
+	profiles: new Set(),
+	records: new Set(["wins", "losses", "draws", "no_contests", "ko", "submissions"])
+};
+
+//The form edits height as two inputs; the database stores one `profiles.height` in inches.
+const HEIGHT_PARTS = ["height_feet", "height_inches"];
+
+/**
+ * Folds the form's two virtual height inputs back into the single `profiles.height` column.
+ * A part that wasn't submitted at all is read back off the row so the untouched half survives;
+ * a part that was submitted blank counts as 0, so clearing both clears the height.
+ * @param {string} profile_id - Profile whose height is being set.
+ * @param {object} fields - Incoming field values for the profiles group.
+ * @returns {Promise<number|null>} Total height in inches, or null when nothing is set.
+ */
+async function resolve_height(profile_id, fields){
+	let feet = HEIGHT_PARTS[0] in fields ? parseInt(fields.height_feet, 10) || 0 : null;
+	let inches = HEIGHT_PARTS[1] in fields ? parseInt(fields.height_inches, 10) || 0 : null;
+
+	if(feet === null || inches === null){
+		const { rows } = await pool.query(`SELECT height FROM profiles WHERE id = $1`, [profile_id]);
+		const current = rows[0]?.height || 0;
+
+		if(feet === null) feet = Math.floor(current / 12);
+		if(inches === null) inches = current % 12;
+	}
+
+	const total = Math.max((feet * 12) + inches, 0);
+
+	return total > 0 ? total : null;
+}
+
+/**
+ * Coerces an incoming value into what its column expects: numeric columns get a
+ * non-negative integer (blank becomes 0), text columns get a trimmed string or NULL.
+ * @param {string} table_name - Table the column belongs to.
+ * @param {string} key - Column name.
+ * @param {*} value - Raw incoming value.
+ * @returns {number|string|null} Value ready to bind to a parameterized query.
+ */
+function normalize_value(table_name, key, value){
+	if(NUMERIC_FIELDS[table_name]?.has(key)){
+		const number = parseInt(value, 10);
+
+		return Number.isFinite(number) && number > 0 ? number : 0;
+	}
+
+	const text = typeof value === "string" ? value.trim() : value;
+
+	return text === "" || text === undefined ? null : text;
+}
 
 /**
  * Applies an allow-listed set of field updates to a single-row table, handling
@@ -35,81 +113,72 @@ const EDITABLE_FIELDS = {
  * @param {string} where_value - Value matched against where_column.
  * @param {object} fields - Incoming field values keyed by column name.
  * @param {import("express").Request} req - Express request object, used to read uploaded files.
- * @returns {Promise<{ table_failed: boolean, failed_uploads: string[] }>} What, if anything, failed.
+ * @returns {Promise<{ table_failed: boolean, failed_uploads: string[], media: Object<string, string|null> }>} What, if anything, failed, plus the saved URL of every media column this update changed.
  */
 async function update_simple_table(table_name, where_column, where_value, fields, req){
 	const allowed_keys = Object.keys(fields).filter(key =>
 		EDITABLE_FIELDS[table_name]?.includes(key)
 	);
 
-	if(allowed_keys.length === 0) return { table_failed: false, failed_uploads: [] };
+	const height_submitted = table_name === "profiles" && HEIGHT_PARTS.some(part => part in fields);
+
+	if(allowed_keys.length === 0 && !height_submitted) return { table_failed: false, failed_uploads: [], media: {} };
 
 	const column_values = {};
 	const media_tracking = { uploaded: [], superseded: [] };
 	const failed_uploads = [];
+	const media = {};
 
 	try{
-		for(const key of allowed_keys){
-			let value = fields[key];
-
-			if(value !== "" && value !== null && !isNaN(value) && typeof value !== "object"){
-				value = Number(value);
-			}
-
-			const uploaded_file = req.files?.find(f => f.fieldname === key);
-			const is_file_field = uploaded_file || value === null || value === "";
-
-			if(is_file_field){
-				const { rows } = await pool.query(
-					`SELECT ${key} FROM ${table_name} WHERE ${where_column} = $1`,
-					[where_value]
-				);
-				const old_url = rows[0]?.[key];
-
-				if(uploaded_file){
-					let result;
-
-					try{
-						result = await upload_cloudinary_image(uploaded_file.buffer);
-					}
-					catch(err){
-						logger.error(`Failed to upload media for field ${key}`, err);
-						failed_uploads.push(key);
-						continue;
-					}
-
-					value = result.secure_url;
-					media_tracking.uploaded.push(value);
-					if(old_url) media_tracking.superseded.push(old_url);
-				}
-				else{
-					value = null;
-					if(old_url) media_tracking.superseded.push(old_url);
-				}
-
-				column_values[key] = value;
-				if(key === "profile_picture_url") profile_picture_url = value;
-				continue;
-			}
-
-			if(key === "height_feet" || key === "height_inches"){
-				column_values._pending_height_part = column_values._pending_height_part || {};
-				column_values._pending_height_part[key] = value;
-				continue;
-			}
-
-			column_values[key] = value;
+		if(height_submitted){
+			column_values.height = await resolve_height(where_value, fields);
 		}
 
-		if(column_values._pending_height_part){
-			const feet = parseInt(column_values._pending_height_part.height_feet, 10) || 0;
-			const inches = parseInt(column_values._pending_height_part.height_inches, 10) || 0;
-			column_values.height = (feet * 12) + inches;
-			delete column_values._pending_height_part;
+		for(const key of allowed_keys){
+			if(!FILE_FIELDS.has(key)){
+				column_values[key] = normalize_value(table_name, key, fields[key]);
+				continue;
+			}
+
+			const uploaded_file = req.files?.[key]?.[0];
+			const is_removal = fields[key] === null || fields[key] === "";
+
+			//A media field carrying a plain string but no file is the client echoing back a URL
+			//it already had. Ignoring it keeps a caller from pointing the column at an arbitrary URL.
+			if(!uploaded_file && !is_removal) continue;
+
+			const { rows } = await pool.query(
+				`SELECT ${key} FROM ${table_name} WHERE ${where_column} = $1`,
+				[where_value]
+			);
+			const old_url = rows[0]?.[key];
+
+			let value = null;
+
+			if(uploaded_file){
+				let result;
+
+				try{
+					result = await upload_cloudinary_image(uploaded_file.buffer);
+				}
+				catch(err){
+					logger.error(`Failed to upload media for field ${key}`, err);
+					failed_uploads.push(key);
+					continue;
+				}
+
+				value = result.secure_url;
+				media_tracking.uploaded.push(value);
+			}
+
+			if(old_url) media_tracking.superseded.push(old_url);
+
+			column_values[key] = value;
+			media[key] = value;
 		}
 
 		const keys = Object.keys(column_values);
-		if(keys.length === 0) return { table_failed: false, failed_uploads };
+		if(keys.length === 0) return { table_failed: false, failed_uploads, media };
 
 		const set_clauses = keys.map((key, i) => `${key} = $${i + 1}`);
 		const values = keys.map(key => column_values[key]);
@@ -131,7 +200,7 @@ async function update_simple_table(table_name, where_column, where_value, fields
 			delete_cloudinary_image(url).catch(cleanup_err => logger.error("Failed to clean up orphaned upload after failed update", cleanup_err));
 		});
 
-		return { table_failed: true, failed_uploads };
+		return { table_failed: true, failed_uploads, media: {} };
 	}
 
 	//Update succeeded — the new values are the source of truth now, so it's safe
@@ -140,7 +209,7 @@ async function update_simple_table(table_name, where_column, where_value, fields
 		delete_cloudinary_image(url).catch(err => logger.error("Orphaned image cleanup failed", err));
 	});
 
-	return { table_failed: false, failed_uploads };
+	return { table_failed: false, failed_uploads, media };
 }
 
 /**
@@ -288,71 +357,77 @@ async function update_awards(profile_id, entries){
  * @param {import("express").Response} res - Express response object.
  * @returns {Promise<void>}
  */
-router.patch("/update/profile", upload.any(), async(req, res) => {
-	if(!req.session.user_id){
-		throw errors.unauthorized("No active session");
+router.patch("/update/profile", require_login("json"), upload.fields(UPLOAD_FIELDS), async(req, res) => {
+	let data;
+
+	try{
+		data = JSON.parse(req.body.json);
+	}
+	catch{
+		throw errors.bad_request("Malformed update payload");
 	}
 
-	const data = JSON.parse(req.body.json);
-	const id = data.id;
+	const id = validation.validate_uuid(data?.id, "profile id");
 
-	let is_owner = false;
+	const profiles = await pool.query(
+		`SELECT p.id, p.user_id, u.claimed
+		 FROM profiles p
+		 JOIN users u ON u.id = p.user_id
+		 WHERE p.id = $1`,
+		[id]
+	);
 
-	if(req.session.is_admin){
-		const profiles = await pool.query(`SELECT id FROM profiles WHERE id = $1`, [id]);
-
-		if(profiles.rows.length === 0){
-			throw errors.not_found("Profile not found");
-		}
+	if(profiles.rows.length === 0){
+		throw errors.not_found("Profile not found");
 	}
-	else{
-		const profiles = await pool.query(
-			`SELECT id FROM profiles WHERE id = $1 AND user_id = $2`,
-			[id, req.session.user_id]
-		);
 
-		if(profiles.rows.length === 0){
-			throw errors.forbidden("Not authorized to edit this profile");
-		}
+	const target = profiles.rows[0];
+	const is_owner = target.user_id === req.session.user_id;
 
-		is_owner = true;
+	//Mirrors the settings page: an admin may edit placeholder profiles only, never a claimed one.
+	const can_edit = is_owner || (Boolean(req.session.is_admin) && !target.claimed);
+
+	if(!can_edit){
+		throw errors.forbidden("Not authorized to edit this profile");
 	}
 
 	const groups = Object.keys(data).filter(group => group !== "id");
 
 	const failed_uploads = [];
 	const failed_groups = [];
+	let media = {};
 
 	for(const group of groups){
 		switch(group){
 			case "profiles":{
 				const result = await update_simple_table("profiles", "id", id, data.profiles, req);
 				failed_uploads.push(...result.failed_uploads);
-				if(result.table_failed) failed_groups.push("profile");
+				if(result.table_failed) failed_groups.push(group);
+				media = { ...media, ...result.media };
 				break;
 			}
 
 			case "records":{
 				const result = await update_simple_table("records", "profile_id", id, data.records, req);
 				failed_uploads.push(...result.failed_uploads);
-				if(result.table_failed) failed_groups.push("record");
+				if(result.table_failed) failed_groups.push(group);
 				break;
 			}
 
 			case "profile_weight_classes":
-				if(!(await update_weight_classes(id, data.profile_weight_classes || []))) failed_groups.push("weight classes");
+				if(!(await update_weight_classes(id, data.profile_weight_classes || []))) failed_groups.push(group);
 				break;
 
 			case "profile_martial_arts":
-				if(!(await update_martial_arts(id, data.profile_martial_arts || []))) failed_groups.push("martial arts");
+				if(!(await update_martial_arts(id, data.profile_martial_arts || []))) failed_groups.push(group);
 				break;
 
 			case "tags":
-				if(!(await update_tags(id, data.tags || []))) failed_groups.push("tags");
+				if(!(await update_tags(id, data.tags || []))) failed_groups.push(group);
 				break;
 
 			case "awards":
-				if(!(await update_awards(id, data.awards || []))) failed_groups.push("awards");
+				if(!(await update_awards(id, data.awards || []))) failed_groups.push(group);
 				break;
 
 			default:
@@ -362,7 +437,7 @@ router.patch("/update/profile", upload.any(), async(req, res) => {
 
 	return res.status(200).json({
 		success: true,
-		profile_picture_url: profile_picture_url,
+		media,
 		is_owner,
 		failed_uploads,
 		failed_groups
@@ -377,12 +452,10 @@ router.patch("/update/profile", upload.any(), async(req, res) => {
  * @param {import("express").Response} res - Express response object.
  * @returns {Promise<void>}
  */
-router.delete("/delete-account", async(req, res) => {
-	if(!req.session.user_id){
-		throw errors.unauthorized("No active session");
-	}
-
-	await pool.with_transaction(async(client) => {
+router.delete("/delete-account", require_login("json"), async(req, res) => {
+	//The URLs are collected inside the transaction but deleted only after it commits —
+	//destroying the media first would leave live rows pointing at dead assets on a rollback.
+	const media_urls = await pool.with_transaction(async(client) => {
 		const profile = await client.query(
 			`SELECT id, profile_picture_url, profile_banner_url FROM profiles WHERE user_id = $1`,
 			[req.session.user_id]
@@ -390,12 +463,15 @@ router.delete("/delete-account", async(req, res) => {
 
 		const profile_id = profile.rows.map(p => p.id);
 		const highlights = profile_id.length > 0 ? await client.query(`SELECT video_url FROM highlights WHERE profile_id = ANY($1)`, [profile_id]) : { rows: [] };
-		const media_urls = [...profile.rows.flatMap(p => [p.profile_picture_url, p.profile_banner_url]), ...highlights.rows.map(h => h.video_url)].filter(Boolean);
-
-		await Promise.all(media_urls.map(delete_cloudinary_image));
 
 		await client.query(`DELETE FROM users WHERE id = $1`, [req.session.user_id]);
+
+		return [...profile.rows.flatMap(p => [p.profile_picture_url, p.profile_banner_url]), ...highlights.rows.map(h => h.video_url)].filter(Boolean);
 	});
+
+	await Promise.all(media_urls.map(url =>
+		delete_cloudinary_image(url).catch(err => logger.error("Failed to delete media for a deleted account", err))
+	));
 
 	await new Promise((resolve, reject) => {
 		req.session.destroy(err => err ? reject(err) : resolve());

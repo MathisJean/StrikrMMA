@@ -1,6 +1,14 @@
 const logger = require("../logger");
 const { AppError } = require("../errors");
 
+//multer rejects an upload before any route runs, and its errors are plain Errors that would
+//otherwise read as a 500. These are client mistakes, so they're translated into 400s.
+const MULTER_MESSAGES = {
+	LIMIT_FILE_SIZE: "That image is too large (5 MB maximum)",
+	LIMIT_FILE_COUNT: "Too many files were uploaded",
+	LIMIT_UNEXPECTED_FILE: "Unexpected file upload field"
+};
+
 /**
  * Final catch-all for unmatched routes. Converts the miss into an AppError so
  * it flows through the same error-handling middleware as everything else.
@@ -25,6 +33,10 @@ function not_found_handler(req, res, next){
  * @returns {void}
  */
 function error_handler(err, req, res, next){
+	if(err?.name === "MulterError" && MULTER_MESSAGES[err.code]){
+		err = new AppError(400, MULTER_MESSAGES[err.code], "json");
+	}
+
 	const is_operational = err instanceof AppError;
 	const status_code = is_operational ? err.status_code : 500;
 	const message = is_operational ? err.message : "Something went wrong.";

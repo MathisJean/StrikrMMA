@@ -1,23 +1,19 @@
 
 //Set up libraries
-const { fs, path, express, pool, errors } = require("../libs/requirements");
+const { express, pool, errors, require_login } = require("../libs/requirements");
 const router = express.Router()
 
 //Setup Router
 
 /**
  * GET /
- * Renders the athletes landing page.
+ * Bare /u has no athlete to show — send visitors to the homepage rather than
+ * rendering the profile view with no profile to render.
  * @param {import("express").Request} req - Express request object.
  * @param {import("express").Response} res - Express response object.
- * @returns {Promise<void>}
+ * @returns {void}
  */
-router.get("/", async(req, res) => {
-	res.render("profile", {
-		layout: "layout",
-		title: "Athletes"
-	});
-});
+router.get("/", (req, res) => res.redirect("/home"));
 
 /**
  * GET /:username/settings
@@ -26,14 +22,10 @@ router.get("/", async(req, res) => {
  * @param {import("express").Response} res - Express response object.
  * @returns {Promise<void>}
  */
-router.get("/:username/settings", async(req, res) => {
-	if(!req.session.user_id){
-		throw errors.unauthorized("You must be logged in", "html");
-	}
-
+router.get("/:username/settings", require_login("html"), async(req, res) => {
 	const username = req.params.username;
 
-	const users = await pool.query(`SELECT * FROM users WHERE username = $1`, [username]);
+	const users = await pool.query(`SELECT * FROM users WHERE LOWER(username) = LOWER($1)`, [username]);
 
 	if(users.rows.length === 0){
 		throw errors.not_found("Athlete not found", "html");
@@ -139,7 +131,7 @@ router.get("/:username/settings", async(req, res) => {
 router.get("/:username", async(req, res) => {
 	const username = req.params.username;
 
-	const users = await pool.query(`SELECT * FROM users WHERE username = $1`, [username]);
+	const users = await pool.query(`SELECT * FROM users WHERE LOWER(username) = LOWER($1)`, [username]);
 
 	if(users.rows.length === 0){
 		throw errors.not_found("Athlete not found", "html");

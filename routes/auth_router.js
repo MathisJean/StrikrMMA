@@ -1,6 +1,6 @@
 
 //Set up libraries
-const { fs, path, express, pool, bcrypt, errors, require_guest } = require("../libs/requirements");
+const { express, pool, bcrypt, errors, validation, require_guest } = require("../libs/requirements");
 const router = express.Router()
 
 //Setup Router
@@ -29,9 +29,13 @@ router.get("/", (req, res) => {
 router.post("/login", async(req, res) => {
 	const { email, password } = req.body;
 
+	if(typeof email !== "string" || typeof password !== "string" || email === "" || password === ""){
+		throw errors.unauthorized("Invalid credentials");
+	}
+
 	const result = await pool.query(
-		`SELECT * FROM users WHERE email = $1`,
-		[email]
+		`SELECT * FROM users WHERE LOWER(email) = LOWER($1)`,
+		[email.trim()]
 	);
 
 	if(result.rows.length === 0){
@@ -39,6 +43,12 @@ router.post("/login", async(req, res) => {
 	}
 
 	const user = result.rows[0];
+
+	//Placeholder accounts created by an admin have no password until they are claimed.
+	//bcrypt.compare throws on a null hash, so this has to be checked before comparing.
+	if(!user.password_hash){
+		throw errors.unauthorized("Invalid credentials");
+	}
 
 	const is_match = await bcrypt.compare(password, user.password_hash);
 
@@ -96,13 +106,17 @@ router.get("/signup-availability", async(req, res) => {
  * @returns {Promise<void>}
  */
 router.post("/signup", async(req, res) => {
-	const { corner, first_name, last_name, username, email, password } = req.body;
-
-	const salt_rounds = 10;
-	const hashed_password = await bcrypt.hash(password, salt_rounds);
+	//The client checks all of this too, but that only saves the user a round trip —
+	//a request that skips the form must not skip the rules.
+	const corner = validation.validate_corner(req.body.corner);
+	const first_name = validation.validate_name(req.body.first_name, "Given name");
+	const last_name = validation.validate_name(req.body.last_name, "Family name");
+	const username = validation.validate_username(req.body.username);
+	const email = validation.validate_email(req.body.email);
+	const password = validation.validate_password(req.body.password);
 
 	const email_result = await pool.query(
-		`SELECT * FROM users WHERE email = $1`,
+		`SELECT id FROM users WHERE LOWER(email) = LOWER($1)`,
 		[email]
 	);
 
@@ -111,13 +125,16 @@ router.post("/signup", async(req, res) => {
 	}
 
 	const username_result = await pool.query(
-		`SELECT * FROM users WHERE username = $1`,
+		`SELECT id FROM users WHERE LOWER(username) = LOWER($1)`,
 		[username]
 	);
 
 	if(username_result.rows.length > 0){
 		throw errors.conflict("Username already registered");
 	}
+
+	const salt_rounds = 10;
+	const hashed_password = await bcrypt.hash(password, salt_rounds);
 
 	const user_id = await pool.with_transaction(async(client) => {
 		const user_result = await client.query(
@@ -135,12 +152,20 @@ router.post("/signup", async(req, res) => {
 		const profile_id = profile_result.rows[0].id;
 
 		await client.query(
-			`INSERT INTO records (profile_id, wins, losses, draws, no_contests)
-			 VALUES ($1, 0, 0, 0, 0)`,
+			`INSERT INTO records (profile_id) VALUES ($1)`,
 			[profile_id]
 		);
 
 		return user_id;
+	}).catch(err => {
+		//The checks above race against a concurrent signup; the unique indexes on
+		//lower(username)/lower(email) are what actually decides, so report their verdict
+		//as a conflict rather than letting it surface as an unexplained 500.
+		if(err.code === "23505"){
+			throw errors.conflict("That username or email is already registered");
+		}
+
+		throw err;
 	});
 
 	req.session.user_id = user_id;
