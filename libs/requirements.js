@@ -11,8 +11,6 @@ const expressLayouts = require("express-ejs-layouts");
 
 const pool = require('./db');
 
-const bcrypt = require('bcrypt');
-
 const session = require("express-session");
 const PgStore = require("connect-pg-simple")(session);
 const user_session = require('./middleware/user_session.js');
@@ -25,7 +23,8 @@ const errors = require('./errors.js');
 const logger = require('./logger.js');
 const validation = require('./validation.js');
 
-const { require_admin, require_login, require_guest } = require('./middleware/permissions.js')
+const { require_admin, require_login, require_guest, require_onboarding } = require('./middleware/permissions.js')
+const rate_limits = require('./middleware/rate_limits.js');
 
 //Export everything you want to reuse
 module.exports = {
@@ -41,9 +40,6 @@ module.exports = {
 
 	//Database
 	pool,
-
-	//Cryptography
-	bcrypt,
 
 	//Session
 	session,
@@ -67,5 +63,9 @@ module.exports = {
 	//Permissions
 	require_admin,
 	require_login,
-	require_guest
+	require_guest,
+	require_onboarding,
+
+	//Rate Limiting
+	rate_limits
 };

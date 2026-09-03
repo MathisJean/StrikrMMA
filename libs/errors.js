@@ -67,6 +67,15 @@ function conflict(message, format){
  * @param {"json"|"html"} [format] - Response format.
  * @returns {AppError}
  */
+function too_many_requests(message, format){
+	return new AppError(429, message, format);
+}
+
+/**
+ * @param {string} message - Safe-to-expose message shown to the client.
+ * @param {"json"|"html"} [format] - Response format.
+ * @returns {AppError}
+ */
 function server_error(message, format){
 	return new AppError(500, message, format);
 }
@@ -78,5 +87,6 @@ module.exports = {
 	forbidden,
 	not_found,
 	conflict,
+	too_many_requests,
 	server_error
 };

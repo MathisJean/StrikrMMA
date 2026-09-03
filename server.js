@@ -1,9 +1,16 @@
 
 //Set up libraries
 require('dotenv').config();
-const { http, os, path, express, expressLayouts, pool, session, PgStore, user_session, mailer, logger } = require('./libs/requirements');
+const { http, os, path, express, expressLayouts, pool, session, PgStore, user_session, require_onboarding, mailer, logger } = require('./libs/requirements');
 const { not_found_handler, error_handler } = require('./libs/middleware/error_handler');
 const app = express();
+
+//Sessions are the only thing standing between a cookie and someone's account. A default
+//secret would sign them with a value anyone reading this repository already knows, so
+//refusing to start is the only safe response to a missing one.
+if(!process.env.SESSION_SECRET){
+	throw new Error("SESSION_SECRET environment variable is required — refusing to start with an insecure default.");
+}
 
 let port = process.env.PORT || 3000;
 
@@ -26,6 +33,13 @@ function get_lan_address(){
 
 const lan_address = get_lan_address();
 
+//Behind Caddy every request arrives from the proxy, so without this req.ip is the proxy's
+//address for everybody and the rate limiters share one bucket across all users. Only in
+//production — trusting a forwarded header locally would let anyone spoof their own IP.
+if(process.env.NODE_ENV === "production"){
+	app.set("trust proxy", 1);
+}
+
 app.use(express.urlencoded({ limit: "10mb", extended: true }));
 
 //__dirname-relative, not cwd-relative: starting the server from any other directory
@@ -33,7 +47,7 @@ app.use(express.urlencoded({ limit: "10mb", extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 app.set("views", path.join(__dirname, "views"));
 app.use(expressLayouts);
-app.use(session({ //TODO: Change for HTTPS
+app.use(session({
 	store: new PgStore({
 		pool: pool,
 		createTableIfMissing: true
@@ -45,7 +59,10 @@ app.use(session({ //TODO: Change for HTTPS
 		httpOnly: true,
 		secure: process.env.NODE_ENV === "production",
 		sameSite: "lax",
-		maxAge: 1000 * 60 * 60 * 24 * 7
+		//30 days. Athletes log in a few times a year, so a short session would mean a
+		//magic-link round trip almost every visit. `secure` above only means anything once
+		//HTTPS is actually live in front of this — that is what this length leans on.
+		maxAge: 1000 * 60 * 60 * 24 * 30
 	}
 }));
 
@@ -70,6 +87,11 @@ app.get('/', (req, res) => res.redirect(301, '/home'));
 app.use(express.json());
 app.set("view engine", "ejs");
 
+//Runs after user_session, which is what puts onboarding_complete on res.locals.user. An
+//account created by a magic link has no username, corner, profile or record until it
+//finishes onboarding, so every other page would be reading fields that do not exist yet.
+app.use(require_onboarding);
+
 //----Routers----//
 
 //API
@@ -83,6 +105,14 @@ app.use('/home', home_router);
 //Authentication
 const auth_router = require('./routes/auth_router');
 app.use('/auth', auth_router);
+
+//Onboarding
+const onboarding_router = require('./routes/onboarding_router');
+app.use('/onboarding', onboarding_router);
+
+//Account
+const account_router = require('./routes/account_router');
+app.use('/account', account_router);
 
 //Athletes
 const athletes_router = require('./routes/athletes_router');

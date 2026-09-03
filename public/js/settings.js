@@ -344,23 +344,61 @@ cancel_delete_btn?.addEventListener("click", () => {
 	delete_account_dialog.close();
 });
 
+//Deleting no longer happens here. With no password there is nothing to re-type as a
+//confirmation step, so the account's own inbox is the confirmation instead — a stronger
+//check than a remembered string, since it proves current access to the email account.
 confirm_delete_btn?.addEventListener("click", async() => {
+	confirm_delete_btn.disabled = true;
+
 	try{
-		const response = await fetch("/api/delete-account", { method: "DELETE" });
+		const response = await fetch("/api/request-deletion", { method: "POST" });
+
+		const result = await response.json().catch(() => ({}));
 
 		if(!response.ok){
-			const result = await response.json();
-			const error = new Error(result.error || "Error Deleting Account.");
+			const error = new Error(result.error || "Error Requesting Deletion.");
 			error.status = response.status;
 			throw error;
 		}
 
-		window.location.href = "/";
+		delete_account_dialog.close();
+		show_error("Check Your Email", "", result.message || "Check your email to confirm account deletion.", false, false);
 	}
 	catch(err){
 		delete_account_dialog.close();
 
 		const status_code = err.status || "500";
 		show_error("Failed to Delete Account", status_code, err.message);
+	}
+	finally{
+		confirm_delete_btn.disabled = false;
+	}
+});
+
+//-- Log Out Everywhere --//
+const logout_everywhere_btn = document.getElementById("logout-everywhere-btn");
+
+logout_everywhere_btn?.addEventListener("click", async() => {
+	logout_everywhere_btn.disabled = true;
+
+	try{
+		const response = await fetch("/api/logout-everywhere", { method: "POST" });
+
+		const result = await response.json().catch(() => ({}));
+
+		if(!response.ok){
+			const error = new Error(result.error || "Error Logging Out.");
+			error.status = response.status;
+			throw error;
+		}
+
+		//This device's session was deleted along with the rest, so there is nothing left
+		//here to stay on.
+		window.location.href = "/";
+	}
+	catch(err){
+		const status_code = err.status || "500";
+		show_error("Failed to Log Out", status_code, err.message);
+		logout_everywhere_btn.disabled = false;
 	}
 });

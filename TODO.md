@@ -1,6 +1,8 @@
 ## LEGAL
 - [ ] **Terms & Conditions**
 - [ ] **Privacy Policy**
+- [ ] Wire the acceptance checkbox into `views/legal_consent.ejs` (placeholder already rendered
+      by onboarding step 1 and claim step 2) and gate their Continue buttons on it
 
 ## UI
 - [x] **Mobile UI**
@@ -9,14 +11,18 @@
 - [ ] **Empty States for Unfilled Profile Sections**
 - [ ] General Popup Class (Confirm Actions + Terms & Conditions)
 - [ ] Skeleton Loaders
+- [ ] Fix Profile Content Height 
 
 ## FEATURES
 - [x] **Account Deletion**
 - [x] **Account Claiming**
 - [x] **Admin Account Creation**
 - [x] **Content Reporting**
-- [ ] **Password Reset**
+- [x] **Email Only Authentication**
 - [ ] Keep Report History on Deletion
+- [ ] Purge abandoned signups (`onboarding_complete = false`, no profile, older than ~7 days).
+      A verified magic link creates the users row before onboarding runs, and
+      `cleanup_expired_tokens` only covers `auth_tokens`.
 
 ## ERRORS
 - [x] **Error Handling (No Visible JSON Errors)**
@@ -24,8 +30,9 @@
 
 ## SECURITY
 - [ ] **Environment Variables & Security Audit**
-- [ ] **Rate Limiting & Auth Input Sanitization**
-- [ ] **Session Security**
+- [x] **Rate Limiting & Auth Input Sanitization**
+- [x] **Session Security**
+- [ ] HTTPS live in front of the app (`secure` cookies + 30-day sessions assume it)
 
 ## BROWSER OPTIMIZATION
 - [ ] **Favicon & Web Manifest**

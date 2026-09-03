@@ -1,0 +1,59 @@
+
+/* Onboarding reuses the auth page's panel styling (.auth, .auth-label, #corner-radio) and
+   the shared stepper (steps.css). Only what is specific to this flow lives here. */
+
+.onboarding{
+	/* The auth page absolutely positions .auth to cross-fade two forms in the same spot.
+	   There is one panel here, and it has to size the viewport it contains. */
+	position: relative;
+
+	align-items: flex-start;
+}
+
+.onboarding .step-panel{
+	display: flex;
+	flex-direction: column;
+
+	align-items: flex-start;
+
+	/* The track lays panels side by side, so each one needs its own internal gap rather
+	   than relying on the parent's. */
+	gap: 0.25em;
+}
+
+.onboarding .auth-title,
+.onboarding .auth-description{
+	width: 100%;
+}
+
+.legal-consent{
+	margin-top: 1em;
+}
+
+.onboarding .step-actions{
+	margin-top: 1em;
+}
+
+select{
+	color: inherit;
+	
+	margin: 0em !important;
+	padding: 0em !important;
+
+	background-color: transparent !important;
+	border: none !important;
+
+	font-size: 1em;
+	text-transform: capitalize;
+	text-align: left;
+}
+
+/* Breakpoints: see public/css/variables.css */
+@media (min-width: 1024px){
+	.onboarding{
+		position: relative;
+
+		width: 100%;
+		max-width: 26em;
+	}
+}

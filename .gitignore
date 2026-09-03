@@ -14,3 +14,12 @@ npm-debug.log*
 # OS
 .DS_Store
 Thumbs.db
+
+schema.sql
+
+TODO.md
+
+.claude
+CLAUDE.md
+
+index.html

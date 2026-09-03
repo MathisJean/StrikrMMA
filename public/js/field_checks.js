@@ -1,10 +1,9 @@
 
-//Shared signup/claim field validation. Both /auth and /claim create a real account and so
-//enforce the same rules; this module is the single copy. These checks only pre-empt the
-//error for the user — libs/validation.js on the server is what actually decides.
+//Shared username/email field validation for the onboarding and claim flows. These checks
+//only pre-empt the error for the user — libs/validation.js on the server is what actually
+//decides.
 
 export const USERNAME_REGEX = /^[a-zA-Z0-9_-]{3,30}$/;
-export const MIN_PASSWORD_LENGTH = 8;
 
 //Keep in sync with RESERVED_USERNAMES in libs/validation.js.
 export const RESERVED_USERNAMES = [
@@ -53,34 +52,33 @@ function clear_field_status(status_el, input_el){
 }
 
 /**
- * Asks the server whether a username or email is still free.
- * @param {"username"|"email"} field - Which field to check.
- * @param {string} value - Value to check.
+ * Asks the server whether a username is still free.
+ * @param {string} username - Username to check.
  * @returns {Promise<boolean>} True if available.
  */
-async function is_available(field, value){
-	const response = await fetch(`/auth/signup-availability?${field}=${encodeURIComponent(value)}`);
+async function is_available(username){
+	//Lives under /api rather than /auth: onboarding calls it with a session already in
+	//place, and the auth routes turn a logged-in caller away.
+	const response = await fetch(`/api/username-availability?username=${encodeURIComponent(username)}`);
 
 	if(!response.ok) return false;
 
 	const data = await response.json();
 
-	return Boolean(field === "username" ? data.username_available : data.email_available);
+	return Boolean(data.username_available);
 }
 
 /**
- * Wires debounced live validation onto the username, email, and password fields of a
- * signup-style form. Elements that aren't present on the page are skipped.
+ * Wires debounced live validation onto the username and email fields of a setup form.
+ * Elements that aren't present on the page are skipped.
  * @param {object} fields
  * @param {HTMLInputElement} [fields.username_input] - Username input.
  * @param {HTMLElement} [fields.username_status] - Username status icon.
  * @param {HTMLInputElement} [fields.email_input] - Email input.
  * @param {HTMLElement} [fields.email_status] - Email status icon.
- * @param {HTMLInputElement} [fields.password_input] - Password input.
- * @param {HTMLElement} [fields.password_status] - Password status icon.
  * @returns {void}
  */
-export function attach_field_checks({ username_input, username_status, email_input, email_status, password_input, password_status }){
+export function attach_field_checks({ username_input, username_status, email_input, email_status }){
 	if(username_input && username_status){
 		username_input.addEventListener("input", debounce(async() => {
 			const username = username_input.value.trim();
@@ -92,7 +90,7 @@ export function attach_field_checks({ username_input, username_status, email_inp
 			}
 
 			try{
-				set_field_status(username_status, username_input, await is_available("username", username));
+				set_field_status(username_status, username_input, await is_available(username));
 			}
 			catch(err){
 				set_field_status(username_status, username_input, false);
@@ -101,33 +99,16 @@ export function attach_field_checks({ username_input, username_status, email_inp
 		}));
 	}
 
+	//Shape only. Whether an address is already registered is deliberately not checked here:
+	//an endpoint answering that question turns any form into a way to ask which emails have
+	//Strikr accounts. The server reports the collision when it matters.
 	if(email_input && email_status){
-		email_input.addEventListener("input", debounce(async() => {
+		email_input.addEventListener("input", debounce(() => {
 			const email = email_input.value.trim();
 
 			if(!email) return clear_field_status(email_status, email_input);
 
-			if(!email_input.checkValidity()){
-				return set_field_status(email_status, email_input, false);
-			}
-
-			try{
-				set_field_status(email_status, email_input, await is_available("email", email));
-			}
-			catch(err){
-				set_field_status(email_status, email_input, false);
-				console.error("Email check failed:", err);
-			}
-		}));
-	}
-
-	if(password_input && password_status){
-		password_input.addEventListener("input", debounce(() => {
-			const password = password_input.value;
-
-			if(!password) return clear_field_status(password_status, password_input);
-
-			set_field_status(password_status, password_input, password.length >= MIN_PASSWORD_LENGTH);
+			set_field_status(email_status, email_input, email_input.checkValidity());
 		}));
 	}
 }

@@ -1,4 +1,8 @@
 
+[hidden] {
+  display: none !important;
+}
+
 .main-section{
 	display: flex;
 	flex-direction: column-reverse;
@@ -42,31 +46,7 @@
 	overflow-y: auto;
 	overflow-x: hidden;
 
-	transition:
-		transform 400ms ease-in-out,
-		border-width 400ms ease;
-
 	z-index: 2;
-}
-
-.auth-signup{
-	/* Moves .section-auth (order:2, starts at --visual-pct%) up so its top edge
-	   lands at 0% — expressed as a % of its OWN height, since that's what
-	   translateY resolves percentages against. */
-	transform: translateY(calc(var(--visual-pct) / var(--auth-pct) * 100%));
-
-	border-bottom: 0em var(--blue) solid;
-	border-top: 0.5em var(--red) solid;
-}
-
-.auth-signup #login-form{
-	opacity: 0;
-	pointer-events: none;
-}
-
-.auth-signup #signup-form{
-	opacity: 1 !important;
-	pointer-events: all !important;
 }
 
 .section-visual{
@@ -93,7 +73,13 @@
 	background-color: white;
 	color: black;
 
-	transition: opacity 400ms ease-in-out;
+	transition: visibility 350ms ease-in-out, opacity 350ms ease-in-out;
+}
+
+/* The check-your-email state replaces the request form in place — same panel, same box,
+   so the page does not jump when the request succeeds. */
+.auth-sent #code-form{
+	width: 100%;
 }
 
 .auth *{
@@ -248,12 +234,17 @@
 }
 
 .auth-switch{
+	width: 100%;
+
+	justify-content: center;
+
 	color: var(--placeholder-clr);
 	font-size: 0.75em;
 
 	margin-top: 2em;
 
 	text-decoration: none;
+	text-align: center;
 }
 
 .auth-switch a,
@@ -274,7 +265,7 @@
 }
 
 #auth-expiry{
-	font-size: 0.5em;
+	font-size: 0.75em;
 }
 
 .section-visual{
@@ -289,57 +280,23 @@
 	color: white;
 
 	padding: 1.5em;
-
-	transition: transform 400ms ease-in-out;
 }
 
-.visual-signup{
-	/* Moves .section-visual (order:1, starts at 0%) down so its top edge
-	   lands at --auth-pct% — expressed as a % of its OWN height. */
-	transform: translateY(calc(var(--auth-pct) / var(--visual-pct) * -100%));
-}
-
-#visual-login, #visual-signup{
+#visual-login, #visual-claim{
 	display: flex;
 	flex-direction: column;
 
 	position: absolute;
 	inset: 0%;
 
-	justify-content: baseline;
-	align-items: baseline;
-
 	width: 100%;
 
 	padding: 1.5em;
-
-	transition: opacity 400ms ease-in-out;
-}
-
-#visual-login{
-	opacity: 1;
 
 	text-align: right;
 
 	justify-content: flex-end;
 	align-items: flex-end;
-}
-
-#visual-signup{
-	opacity: 0;
-
-	text-align: left;
-
-	justify-content: flex-end;
-	align-items: flex-start;
-}
-
-.visual-signup #visual-login{
-	opacity: 0;
-}
-
-.visual-signup #visual-signup{
-	opacity: 1;
 }
 
 .visual-title{
@@ -394,19 +351,6 @@
 		height: 100%;
 
 		padding: 2em;
-
-		transition:
-			transform 400ms ease-in-out,
-			border-width 400ms ease;
-	}
-
-	.auth-signup{
-		transform: translateX(100%);
-
-		border-top: 0em var(--blue) solid;
-		border-bottom: 0em var(--red) solid;
-		border-right: 0em var(--blue) solid;
-		border-left: 0.5em var(--red) solid;
 	}
 
 	.auth{
@@ -433,15 +377,9 @@
 		height: 100%;
 
 		padding: 2em;
-
-		transition: transform 400ms ease-in-out;
 	}
 
-	.visual-signup{
-		transform: translateX(-100%);
-	}
-
-	#visual-login, #visual-signup, #visual-claim{
+	#visual-login, #visual-claim{
 		display: flex;
 		flex-direction: column;
 

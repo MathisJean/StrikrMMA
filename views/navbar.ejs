@@ -28,7 +28,7 @@
 				<% }if(user){ %>
 				<a id="profile-btn" class="btn" href="<%= user.username ? `/u/${user.username}` : '/home' %>" style="background-image: <%= user.profile_picture_url ? `url(${user.profile_picture_url});` : 'url(/svg/profile_light.svg);' %>"></a>
 				<% } else{ %>
-				<a id="join-btn" class="solid-btn btn" href='/auth#signup'>JOIN THE FIGHT</a>
+				<a id="join-btn" class="solid-btn btn" href="/auth">JOIN THE FIGHT</a>
 				<% } %>
 			</div>
 

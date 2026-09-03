@@ -1,0 +1,14 @@
+Show show_error Popup on the /home?message=account_deleted (then clear url)
+Redirect failed delete attempts to profile
+Searchbar in /onboarding shows empty results and error message
+Email body formatting matching the websites current CSS styling (Have temporary styling in place)
+Use of Strikr instead of STRIKR
+claim / auth functionality should be mirrored and allow auth through code (I added UI but not the functionality)
+/auth should be red and aligned to the right, like /claim. Mobile should be the same bewteen both
+Profile removal prompts shouldn't be based on, this isnt you, it should be based on "I don't want an account". I will ensure its the correct profile
+/auth + /claim should have the same transition between email input -> auth code that /onboarding has between steps
+Set auth form max width for mobile
+Mobile profile picture size is too large
+Enter in forms should focus on next input / next / submit
+signup on mobile hides settings and logout btns.
+Report BTN should follow the same scaling that tags + content actions do

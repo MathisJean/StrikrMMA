@@ -1,87 +1,77 @@
 
+import { init_steps } from "/js/steps.js";
 import { attach_field_checks } from "/js/field_checks.js";
 
-const claim_form = document.getElementById("claim-form");
+const claim_flow = document.getElementById("claim-flow");
+const track = document.getElementById("claim-track");
 const decline_btn = document.getElementById("claim-decline-btn");
 
-const username_input = document.getElementById("username-input");
-const username_status = document.getElementById("username-status");
+//Only the "ready" state renders the flow; the invalid and already-claimed states are static
+//messages with none of this on the page.
+if(claim_flow && track){
+	const send_btn = document.getElementById("claim-send-btn");
+	const sent_email = document.getElementById("claim-sent-email");
 
-const email_input = document.getElementById("email-input");
-const email_status = document.getElementById("email-status");
+	const email_input = document.getElementById("email-input");
+	const email_status = document.getElementById("email-status");
 
-const password_input = document.getElementById("password-input");
-const password_status = document.getElementById("password-status");
+	const code_form = document.getElementById("code-form");
+	const code_btn = document.getElementById("code-btn");
+	const code_input = document.getElementById("code-input");
+	const resend_btn = document.getElementById("resend-btn");
 
-attach_field_checks({
-	username_input, username_status,
-	email_input, email_status,
-	password_input, password_status
-});
+	attach_field_checks({ email_input, email_status });
 
-claim_form?.addEventListener("submit", event => accept_claim(event));
+	let email_sent = false;
 
-/**
- * Validates the claim form client-side and submits the accept request, redirecting
- * to the new profile on success.
- * @param {SubmitEvent} event - The form submit event.
- * @returns {Promise<void>}
- */
-async function accept_claim(event){
-	event.preventDefault();
+	const steps = init_steps(track, {
+		on_leave: (from_step, to_step) => {
+			//Step 3 says "we sent you a link", so it is only reachable once one actually is.
+			if(to_step === 3 && !email_sent) return false;
 
-	const token = claim_form.dataset.token;
-	const corner = claim_form.querySelector("input[name='input-corner']:checked")?.value.trim() || "";
-	const username = username_input?.value.trim() || "";
-	const email = email_input?.value.trim() || "";
-	const password = password_input?.value || "";
+			return true;
+		}
+	});
 
-	if(!corner){
-		show_error("Claim Failed", "400", "Please select a corner");
-		return;
-	}
+	send_btn.addEventListener("click", async() => {
+		const email = email_input.value.trim();
 
-	if(username_input.dataset.status !== "y"){
-		show_error("Claim Failed", "400", "Username is unavailable or invalid");
-		return;
-	}
-
-	if(email_input.dataset.status !== "y"){
-		show_error("Claim Failed", "400", "Invalid or unavailable email address");
-		return;
-	}
-
-	if(password_input.dataset.status !== "y"){
-		show_error("Claim Failed", "400", "Password must be at least 8 characters long");
-		return;
-	}
-
-	try{
-		const response = await fetch("/claim/accept", {
-			method: "POST",
-			headers: {
-				"Content-Type": "application/json"
-			},
-			body: JSON.stringify({ token, username, email, password, corner })
-		});
-
-		const result = await response.json().catch(() => ({}));
-
-		if(!response.ok){
-			const error = new Error(result.error || "Claim failed.");
-			error.status = response.status;
-			error.details = result.error || "Claim failed.";
-			throw error;
+		if(!email || !email_input.checkValidity()){
+			show_error("Claim Failed", "400", "Please enter a valid email address");
+			return;
 		}
 
-		window.location.href = "/u/" + result.username;
-	}
-	catch(err){
-		const status_code = err.status || "500";
-		const message = err.details || err.message || "Network error. Please try again.";
+		send_btn.disabled = true;
 
-		show_error("Claim Failed", status_code, message);
-	}
+		try{
+			const response = await fetch("/claim/start", {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json"
+				},
+				body: JSON.stringify({ token: claim_flow.dataset.token, email })
+			});
+
+			const result = await response.json().catch(() => ({}));
+
+			if(!response.ok){
+				const error = new Error(result.error || "Could not send a login link.");
+				error.status = response.status;
+				throw error;
+			}
+
+			sent_email.textContent = email;
+
+			//The button stays disabled: this step is finished, and the claim continues in
+			//the athlete's inbox now.
+			email_sent = true;
+			steps.go_to(3);
+		}
+		catch(err){
+			show_error("Claim Failed", err.status || "500", err.message || "Network error. Please try again.");
+			send_btn.disabled = false;
+		}
+	});
 }
 
 decline_btn?.addEventListener("click", () => decline_claim());
@@ -93,15 +83,13 @@ decline_btn?.addEventListener("click", () => decline_claim());
 async function decline_claim(){
 	if(!confirm("Are you sure this isn't you? This profile will be permanently deleted.")) return; //TODO: Switch from alarm to styled popup
 
-	const token = claim_form.dataset.token;
-
 	try{
 		const response = await fetch("/claim/decline", {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json"
 			},
-			body: JSON.stringify({ token })
+			body: JSON.stringify({ token: claim_flow.dataset.token })
 		});
 
 		const result = await response.json().catch(() => ({}));
@@ -113,14 +101,27 @@ async function decline_claim(){
 			throw error;
 		}
 
-		claim_form.innerHTML = `
-			<h1 class=\"auth-title\">PROFILE REMOVED</h1>
-			<p class=\"auth-description\">Thanks for letting us know.</p>
+		claim_flow.innerHTML = "";
 
-			<div class="auth-submit-wrap">
-				<a id="claim-home-btn" class="solid-btn" href="/home">GO HOME</a>
-			</div>
-		`;
+		const title = document.createElement("h1");
+		title.className = "auth-title";
+		title.textContent = "PROFILE REMOVED";
+
+		const description = document.createElement("p");
+		description.className = "auth-description";
+		description.textContent = "Thanks for letting us know.";
+
+		const actions = document.createElement("div");
+		actions.className = "auth-submit-wrap";
+
+		const home = document.createElement("a");
+		home.id = "claim-home-btn";
+		home.className = "solid-btn";
+		home.href = "/home";
+		home.textContent = "GO HOME";
+
+		actions.appendChild(home);
+		claim_flow.append(title, description, actions);
 	}
 	catch(err){
 		const status_code = err.status || "500";

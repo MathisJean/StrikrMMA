@@ -1,0 +1,140 @@
+<head>
+	<link rel="stylesheet" href="/css/auth.css">
+	<link rel="stylesheet" href="/css/steps.css">
+	<link rel="stylesheet" href="/css/onboarding.css">
+</head>
+
+<script defer type="module" src="/js/onboarding.js"></script>
+
+<!-- Content -->
+<!--
+	Deliberately its own self-contained flow starting at Step 1, not a continuation of the
+	auth page's animation. The user left the site entirely in between (they checked their
+	email, possibly in another browser), so there is no gesture of theirs for a carried-over
+	slide to feel like it is continuing.
+-->
+<section class="main-section">
+	<div class="section-auth">
+		<div class="auth onboarding">
+			<p class="step-indicator" data-step-indicator></p>
+
+			<div class="step-viewport">
+				<div class="step-track" id="onboarding-track">
+
+					<!-- Step 1 — Welcome -->
+					<div class="step-panel" data-step="1">
+						<h1 class="auth-title">WELCOME TO STRIKR</h1>
+						<p class="auth-description">Let's set up your profile.</p>
+
+						<%- include("legal_consent") %>
+
+						<div class="step-actions">
+							<button type="button" class="solid2-btn" data-target-step="2">CONTINUE</button>
+						</div>
+					</div>
+
+					<!-- Step 2 — Identity basics -->
+					<div class="step-panel" data-step="2">
+						<h1 class="auth-title">WHO ARE YOU?</h1>
+						<p class="auth-description">This is how you'll show up.</p>
+
+						<div class="auth-inputs">
+							<label class="auth-label" id="auth-corner">
+								CORNER
+								<div id="corner-radio" role="radiogroup" aria-label="Corner">
+									<input type="radio" id="onboarding-corner-red" name="input-corner" value="red" aria-label="Red corner">
+									<input type="radio" id="onboarding-corner-blue" name="input-corner" value="blue" aria-label="Blue corner">
+								</div>
+							</label>
+
+							<label class="auth-label">
+								GIVEN NAME
+								<div class="input-wrapper">
+									<input type="text" id="namef-input" class="user-input" placeholder="John" autocomplete="given-name" maxlength="50" value="<%= first_name %>">
+								</div>
+							</label>
+
+							<label class="auth-label">
+								FAMILY NAME
+								<div class="input-wrapper">
+									<input type="text" id="namel-input" class="user-input" placeholder="Doe" autocomplete="family-name" maxlength="50" value="<%= last_name %>">
+								</div>
+							</label>
+
+							<label class="auth-label">
+								USERNAME
+								<div class="input-wrapper">
+									<span class="prefix">strikr.com/u/</span>
+									<input type="text" id="username-input" class="user-input" data-status="n" placeholder="johndoe50" autocomplete="username" maxlength="30">
+									<span id="username-status" class="input-status"></span>
+								</div>
+							</label>
+						</div>
+
+						<div class="step-actions">
+							<button type="button" class="solid-btn" data-target-step="1">BACK</button>
+							<button type="button" class="solid2-btn" id="step2-next">CONTINUE</button>
+						</div>
+					</div>
+
+					<!-- Step 3 — Optional details -->
+					<div class="step-panel" data-step="3">
+						<h1 class="auth-title">YOUR SPECS</h1>
+						<p class="auth-description">None of this is needed and can be changed.</p>
+
+						<div class="auth-inputs">
+							<label class="auth-label">
+								NICKNAME
+								<div class="input-wrapper">
+									<input type="text" id="nickname-input" class="user-input" placeholder="The Hammer" maxlength="30" value="<%= nickname %>">
+								</div>
+							</label>
+
+							<label class="auth-label">
+								STANCE
+								<div class="input-wrapper">
+									<!-- Values match the settings page's stance options exactly; a
+									     capitalised value here would not re-select there. -->
+									<select id="stance-input" class="user-input">
+										<option value="" <%= stance === "" ? 'selected' : '' %>>Select Stance</option>
+										<option value="orthodox" <%= stance === "orthodox" ? 'selected' : '' %>>Orthodox</option>
+										<option value="southpaw" <%= stance === "southpaw" ? 'selected' : '' %>>Southpaw</option>
+										<option value="switch" <%= stance === "switch" ? 'selected' : '' %>>Switch</option>
+									</select>
+								</div>
+							</label>
+
+							<label class="auth-label">
+								HOMETOWN
+								<div class="input-wrapper">
+									<input type="text" id="hometown-input" class="user-input" placeholder="Calgary, AB" maxlength="60" value="<%= hometown %>">
+								</div>
+							</label>
+
+							<label class="auth-label">
+								TEAM
+								<div class="input-wrapper">
+									<input type="text" id="team-input" class="user-input" placeholder="Gym or Camp" maxlength="60" value="<%= team %>">
+								</div>
+							</label>
+						</div>
+
+						<div class="step-actions">
+							<button type="button" class="solid-btn" data-target-step="2">BACK</button>
+							<button type="button" class="solid2-btn" id="finish-btn">FINISH</button>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div class="section-visual">
+		<div id="visual-login">
+			<h1 class="visual-title">STEP INTO</h1>
+			<h1 class="visual-title"><span>THE RING</span></h1>
+
+			<p class="visual-description">Create your fighter profile. Connect your Instagram. Share your record. Let the world know who you are.</p>
+		</div>
+	</div>
+</section>

@@ -1,5 +1,5 @@
 //Set up libraries
-const { express, pool, upload_cloudinary_image, delete_cloudinary_image, errors, logger, validation, require_login } = require("../libs/requirements");
+const { express, pool, upload_cloudinary_image, delete_cloudinary_image, errors, logger, mailer, validation, require_login, rate_limits } = require("../libs/requirements");
 const router = express.Router();
 
 const multer = require("multer");
@@ -351,6 +351,62 @@ async function update_awards(profile_id, entries){
 	}
 }
 
+//Free-text fields keyed by the group they arrive in, with the label used in the error
+//message. Every one of these lands in an unbounded varchar/text column, so the cap is the
+//only thing standing between a paste and an arbitrarily large payload on every page that
+//renders the profile. Views escape their output, so this is about size, not markup.
+const TEXT_FIELDS = {
+	profiles: {
+		nickname: "Nickname",
+		stance: "Stance",
+		team: "Team",
+		hometown: "Hometown",
+		walkout_song: "Walkout song",
+		walkout_song_artist: "Walkout song artist",
+		instagram_url: "Instagram username"
+	},
+	tags: { tag_text: "Tag" },
+	awards: { title: "Award title", description: "Award description" }
+};
+
+//`awards` uses its own cap names, since "title" and "description" are too generic to key on.
+const TEXT_LENGTH_KEYS = {
+	title: "award_title",
+	description: "award_description"
+};
+
+/**
+ * Enforces the free-text length caps across a whole incoming update payload, before any
+ * group is applied. Done up front rather than inside update_simple_table, because that
+ * function reports failures as a generic "this group failed" and would swallow the specific
+ * message telling the user which field was too long.
+ * @param {object} data - Parsed update payload keyed by group.
+ * @returns {void}
+ * @throws {import("../libs/errors.js").AppError} 400 if any free-text field exceeds its cap.
+ */
+function validate_payload_text(data){
+	for(const [group, labels] of Object.entries(TEXT_FIELDS)){
+		const incoming = data[group];
+
+		if(!incoming) continue;
+
+		//profiles/records arrive as one object; tags/awards as an array of them.
+		const entries = Array.isArray(incoming) ? incoming : [incoming];
+
+		for(const entry of entries){
+			if(!entry || typeof entry !== "object") continue;
+
+			for(const [field, label] of Object.entries(labels)){
+				if(!(field in entry)) continue;
+
+				const max = validation.MAX_TEXT_LENGTHS[TEXT_LENGTH_KEYS[field] || field];
+
+				validation.validate_text(entry[field], label, max);
+			}
+		}
+	}
+}
+
 //Setup Router
 
 /**
@@ -374,6 +430,10 @@ router.patch("/update/profile", require_login("json"), upload.fields(UPLOAD_FIEL
 	}
 
 	const id = validation.validate_uuid(data?.id, "profile id");
+
+	//Checked before the ownership lookup runs any groups, so an over-long field is reported
+	//as itself instead of as a partially-applied save.
+	validate_payload_text(data);
 
 	const profiles = await pool.query(
 		`SELECT p.id, p.user_id, u.claimed
@@ -451,39 +511,106 @@ router.patch("/update/profile", require_login("json"), upload.fields(UPLOAD_FIEL
 });
 
 /**
- * DELETE /delete-account
- * Permanently deletes the caller's account (cascading through their profiles and related
- * data), destroys their session, and cleans up any associated Cloudinary media.
+ * POST /request-deletion
+ * Emails the account's own address a single-use link confirming deletion.
+ *
+ * This replaces the "re-type your password" step that a password-based app would use here.
+ * It is a stronger guarantee, not just a substitute: it proves current access to the email
+ * account rather than knowledge of a string, so an unlocked device left lying around cannot
+ * be used to delete an account someone else set up.
  * @param {import("express").Request} req - Express request object.
  * @param {import("express").Response} res - Express response object.
  * @returns {Promise<void>}
  */
-router.delete("/delete-account", require_login("json"), async(req, res) => {
-	//The URLs are collected inside the transaction but deleted only after it commits —
-	//destroying the media first would leave live rows pointing at dead assets on a rollback.
-	const media_urls = await pool.with_transaction(async(client) => {
-		const profile = await client.query(
-			`SELECT id, profile_picture_url, profile_banner_url FROM profiles WHERE user_id = $1`,
-			[req.session.user_id]
-		);
+router.post("/request-deletion", require_login("json"), rate_limits.deletion_request_limit, async(req, res) => {
+	const result = await pool.query(`SELECT email FROM users WHERE id = $1`, [req.session.user_id]);
+	const email = result.rows[0]?.email;
 
-		//TODO: Collect highlight video_urls here too once the highlights feature ships. The
-		//table does not currently exist, and querying it made every account deletion fail.
-		await client.query(`DELETE FROM users WHERE id = $1`, [req.session.user_id]);
+	if(!email){
+		throw errors.bad_request("This account has no email address on file");
+	}
 
-		return profile.rows.flatMap(p => [p.profile_picture_url, p.profile_banner_url]).filter(Boolean);
-	});
+	try{
+		await mailer.create_and_send_token({
+			user_id: req.session.user_id,
+			email,
+			purpose: "account_deletion",
+			ttl_interval: "15 minutes",
+			subject: "Confirm account deletion",
+			build_link: raw_token => `${process.env.APP_BASE_URL}/account/confirm-deletion?token=${raw_token}`,
+			build_html: link => `
+				<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 24px; color: #1e293b; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; justify-content: center;">
+					<p style="margin-top: 0; margin-bottom: 16px; font-size: 15px; line-height: 1.5; color: #334155; text-align: center;">
+						Click to permanently delete your STRIKR account:
+					</p>
+					
+					<p style="margin-top: 0; margin-bottom: 24px; text-align: center;">
+						<a href="${link}" style="display: inline-block; padding: 12px 24px; background-color: #dc2626; color: #ffffff; text-decoration: none; font-weight: 600; font-size: 16px; border-radius: 6px;">Confirm Deletion</a>
+					</p>
+					
+					<p style="margin-bottom: 0; font-size: 13px; line-height: 1.5; color: #64748b; border-top: 1px solid #f1f5f9; padding-top: 16px;">
+						This link expires in 15 minutes. If you didn't request this, you can <b>ignore this email</b> and nothing will be deleted.
+					</p>
+				</div>
+			`
+		});
+	}
+	catch(err){
+		logger.error("Failed to send an account deletion link", err);
 
-	await Promise.all(media_urls.map(url =>
-		delete_cloudinary_image(url).catch(err => logger.error("Failed to delete media for a deleted account", err))
-	));
+		//The caller is waiting on that email to finish deleting their account, so a failure
+		//has to say so rather than leaving them watching an inbox nothing is coming to.
+		throw errors.server_error("We couldn't send the confirmation email. Please try again.");
+	}
 
-	await new Promise((resolve, reject) => {
-		req.session.destroy(err => err ? reject(err) : resolve());
-	});
+	return res.status(200).json({ message: "Check your email to confirm account deletion." });
+});
 
+/**
+ * POST /logout-everywhere
+ * Ends every session belonging to the caller, on every device.
+ *
+ * With no password there is no other way to invalidate a session on a lost or stolen device —
+ * that used to fall out of a password reset, and this design has none.
+ * @param {import("express").Request} req - Express request object.
+ * @param {import("express").Response} res - Express response object.
+ * @returns {Promise<void>}
+ */
+router.post("/logout-everywhere", require_login("json"), async(req, res) => {
+	//connect-pg-simple stores the session payload as JSON in `sess`; the column is `json`,
+	//not `jsonb`, so the cast is what makes the ->> lookup available.
+	await pool.query(
+		`DELETE FROM session WHERE sess::jsonb ->> 'user_id' = $1`,
+		[req.session.user_id]
+	);
+
+	//This request's own session row was just deleted along with the rest, so the cookie
+	//still in the browser now points at nothing.
 	res.clearCookie("connect.sid");
-	return res.status(200).json({ success: true });
+	return res.status(200).json({ message: "Logged out of all devices." });
+});
+
+/**
+ * GET /username-availability
+ * Checks whether a username is still free. Unauthenticated: it is called from onboarding,
+ * where the caller has a session but has not finished setting up their account.
+ * @param {import("express").Request} req - Express request object. Expects `username` in the query string.
+ * @param {import("express").Response} res - Express response object.
+ * @returns {Promise<void>}
+ */
+router.get("/username-availability", async(req, res) => {
+	const { username } = req.query;
+
+	if(typeof username !== "string" || username.trim() === ""){
+		return res.status(200).json({ username_available: false });
+	}
+
+	const result = await pool.query(
+		`SELECT EXISTS(SELECT 1 FROM users WHERE LOWER(username) = LOWER($1))`,
+		[username.trim()]
+	);
+
+	return res.status(200).json({ username_available: !result.rows[0].exists });
 });
 
 /**

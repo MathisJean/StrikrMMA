@@ -4,90 +4,61 @@
 
 <script defer type="module" src="/js/auth.js"></script>
 
-<!-- TODO: Terms & Services -->
-
 <!-- Content -->
+<!--
+	One form, one field. There is no login/signup distinction to slide between any more:
+	the same email either finds an account or creates one, so the panel is static.
+-->
 <section class="main-section">
 	<div class="section-auth">
-		<form class="auth" id="login-form" autocomplete="off" novalidate>
-			<h1 class="auth-title">LOG IN</h1>
-			<p class="auth-description">Welcome back to your corner.</p>
+		<form class="auth" id="request-form" autocomplete="on" novalidate>
+			<h1 class="auth-title">LOGIN</h1>
+			<p class="auth-description">Continue to login or to create an account.</p>
 
 			<div class="auth-inputs">
 				<label class="auth-label">
 					EMAIL
-					<input type="email" class="user-input" placeholder="you@exemple.com" autocomplete="email" oninvalid="let popup_alert = this.parentNode.querySelector('.alert_msg'); popup_alert.textContent = 'E-mail Invalide'; popup_alert.style.visibility = 'visible';">
-				</label>
-				
-				<label class="auth-label">
-					PASSWORD
-					<input type="password" class="user-input" placeholder="··········" autocomplete="current-password" minlength="8" oninvalid="let popup_alert = this.parentNode.querySelector('.alert_msg'); popup_alert.textContent = 'Mot de Passe Trop Court'; popup_alert.style.visibility = 'visible';">
-				</label>
-			</div>
-			
-			<div class="auth-submit-wrap">
-				<button type="submit" class="solid2-btn">ENTER</button>
-			</div>
-
-			<p class="auth-switch" id="login-switch">Don't have an account? <span>Join Now</span></p>
-		</form>
-
-		<form class="auth" id="signup-form" autocomplete="off" style="opacity: 0; pointer-events: none;" novalidate>
-			<h1 class="auth-title">SIGN UP</h1>
-			<p class="auth-description">Choose your corner.</p>	
-			
-			<div class="auth-inputs">
-				<label class="auth-label" id="auth-corner">
-					CORNER
-					<div id="corner-radio" role="radiogroup" aria-label="Corner">
-						<input type="radio" id="signup-corner-red" name="input-corner" value="red" aria-label="Red corner">
-						<input type="radio" id="signup-corner-blue" name="input-corner" value="blue" aria-label="Blue corner">
-					</div>
-				</label>
-
-				<label class="auth-label">
-					GIVEN NAME
-					<input type="text" id="namef-input" class="user-input" data-status="n" placeholder="John" autocomplete="given-name">
-				</label>
-
-				<label class="auth-label">
-					FAMILY NAME
-					<input type="text" id="namel-input" class="user-input" data-status="n" placeholder="Doe" autocomplete="family-name">
-				</label>
-
-				<label class="auth-label">
-					USERNAME
 					<div class="input-wrapper">
-						<span class="prefix">strikr.com/u/</span>
-						<input type="text" id="username-input" class="user-input" data-status="n" placeholder="johndoe50" autocomplete="username">
-						<span id="username-status" class="input-status"></span>
-					</div>
-				</label>
-
-				<label class="auth-label">
-					EMAIL
-					<div class="input-wrapper">
-						<input type="email" id="email-input" class="user-input" data-status="n" placeholder="johndoe@exemple.com" autocomplete="email">
-						<span id="email-status" class="input-status"></span>
-					</div>
-				</label>
-				
-				<!-- TODO: Possibly Remove -->
-				<label class="auth-label">
-					PASSWORD
-					<div class="input-wrapper">
-						<input type="password" id="password-input" class="user-input" data-status="n" placeholder="··········" autocomplete="current-password" minlength="8">
-						<span id="password-status" class="input-status"></span>
+						<input type="email" id="email-input" class="user-input" placeholder="you@example.com" autocomplete="email" required>
 					</div>
 				</label>
 			</div>
 
 			<div class="auth-submit-wrap">
-				<button type="submit" id="signup-btn" class="solid-btn">ENTER</button>
+				<button type="submit" id="request-btn" class="solid2-btn">VERIFY EMAIL</button>
 			</div>
 
-			<p class="auth-switch" id="signup-switch">Already have an account? <span>Log In</span></p>
+			<p class="auth-switch">New here? Verify your email to start.</p>
 		</form>
+
+		<!--
+			The second half of the same flow, not a second form. Both ways out of this screen
+			are offered at once: clicking the link works when the mail app opens it in this
+			same browser, and the code covers when it doesn't — an Instagram in-app browser
+			can hand the link to a different browser entirely, leaving this tab logged out.
+		-->
+		<div class="auth auth-sent" id="sent-panel" hidden>
+			<h1 class="auth-title">CHECK YOUR EMAIL</h1>
+			<p class="auth-description">We sent a login link to <strong id="sent-email"></strong>.</p>
+
+			<form id="code-form" autocomplete="off" novalidate>
+				<div class="auth-inputs">
+					<label class="auth-label">
+						LOGIN CODE
+						<div class="input-wrapper">
+							<input type="text" id="code-input" class="user-input" placeholder="000000" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}">
+						</div>
+					</label>
+				</div>
+
+				<div class="auth-submit-wrap">
+					<button type="submit" id="code-btn" class="solid2-btn">LOG IN</button>
+				</div>
+			</form>
+
+			<p class="auth-switch">Didn't get it? <span id="resend-btn">Send another link</span></p>
+			<p class="auth-switch" id="auth-expiry">The link and code expire in 15 minutes.</p>
+		</div>
 	</div>
 
 	<div class="section-visual">
@@ -95,14 +66,7 @@
 			<h1 class="visual-title">BACK INTO</h1>
 			<h1 class="visual-title"><span>THE RING</span></h1>
 
-			<p class="visual-description">Log in to your profile. Manage your fighter stats. Keep building your record. Show them you're ready.</p>
-		</div>
-
-		<div id="visual-signup">
-			<h1 class="visual-title">STEP INTO</h1>
-			<h1 class="visual-title"><span>THE RING</span></h1>
-
-			<p class="visual-description">Create your fighter profile. Connect your Instagram. Share your record. Let the world know who you are.</p>
+			<p class="visual-description">Manage your fighter stats. Keep building your record. Show them you're ready.</p>
 		</div>
 	</div>
 </section>

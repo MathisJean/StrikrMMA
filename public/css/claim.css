@@ -79,6 +79,13 @@
 	white-space: nowrap;
 }
 
+#visual-claim{
+	justify-content: flex-start;
+	align-items: flex-start;
+
+	text-align: left;
+}
+
 @media (min-width: 1024px){
 	.claim-section{
 		flex-direction: row;

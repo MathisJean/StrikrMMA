@@ -42,7 +42,7 @@
 					<div>
 						<label>
 							NICKNAME
-							<input type="text" name="nickname" class="profile-input" value="<%= profile.nickname %>" data-group="profiles" data-field="nickname">
+							<input type="text" name="nickname" class="profile-input" maxlength="30" value="<%= profile.nickname %>" data-group="profiles" data-field="nickname">
 						</label>
 
 						<label>
@@ -71,8 +71,8 @@
 
 						<label>
 							WALKOUT SONG
-							<input type="text" name="walkout_song" class="profile-input" placeholder="Song" value="<%= profile.walkout_song %>" data-group="profiles" data-field="walkout_song">
-							<input type="text" name="walkout_song_artist" class="profile-input" placeholder="Artist" value="<%= profile.walkout_song_artist %>" data-group="profiles" data-field="walkout_song_artist">
+							<input type="text" name="walkout_song" class="profile-input" maxlength="100" placeholder="Song" value="<%= profile.walkout_song %>" data-group="profiles" data-field="walkout_song">
+							<input type="text" name="walkout_song_artist" class="profile-input" maxlength="100" placeholder="Artist" value="<%= profile.walkout_song_artist %>" data-group="profiles" data-field="walkout_song_artist">
 						</label>
 
 						<label>
@@ -135,18 +135,18 @@
 							INSTAGRAM URL
 							<div class="settings-input-wrapper">
 								<span class="prefix">instagram.com/</span>
-								<input type="text" name="instagram_url" class="profile-input" placeholder="username" value="<%= profile.instagram_url %>" data-group="profiles" data-field="instagram_url">
+								<input type="text" name="instagram_url" class="profile-input" maxlength="30" placeholder="username" value="<%= profile.instagram_url %>" data-group="profiles" data-field="instagram_url">
 							</div>
 						</label>
 
 						<label>
 							TEAM
-							<input type="text" name="team" class="profile-input" value="<%= profile.team %>" data-group="profiles" data-field="team">
+							<input type="text" name="team" class="profile-input" maxlength="60" value="<%= profile.team %>" data-group="profiles" data-field="team">
 						</label>
 
 						<label>
 							HOMETOWN
-							<input type="text" name="hometown" class="profile-input" value="<%= profile.hometown %>" data-group="profiles" data-field="hometown">
+							<input type="text" name="hometown" class="profile-input" maxlength="60" value="<%= profile.hometown %>" data-group="profiles" data-field="hometown">
 						</label>
 					</div>
 
@@ -165,8 +165,8 @@
 						<% for(let i = 0; i < 4; i++) { %>
 							<label>
 								AWARD <%= i + 1 %>
-								<input type="text" name="title_<%= i + 1 %>" placeholder="Title" class="profile-input" value="<%= awards[i]?.title %>" data-group="awards" data-field="title" data-index="<%= i %>">
-								<input type="text" name="description_<%= i + 1 %>" placeholder="Description" class="profile-input" value="<%= awards[i]?.description %>" data-group="awards" data-field="description" data-index="<%= i %>">
+								<input type="text" name="title_<%= i + 1 %>" placeholder="Title" class="profile-input" maxlength="60" value="<%= awards[i]?.title %>" data-group="awards" data-field="title" data-index="<%= i %>">
+								<input type="text" name="description_<%= i + 1 %>" placeholder="Description" class="profile-input" maxlength="200" value="<%= awards[i]?.description %>" data-group="awards" data-field="description" data-index="<%= i %>">
 							</label>
 						<% } %>
 					</div>
@@ -178,10 +178,24 @@
 
 			<!-- Danger Zone -->
 			<% if(!locals.is_admin_view){ %>
+				<!--
+					With no password, signing out everywhere is the only way to invalidate a
+					session on a lost or stolen device — that used to fall out of a password
+					reset, and there is no password to reset any more.
+				-->
+				<div class="danger-zone">
+					<div>
+						<h2>LOG OUT EVERYWHERE</h2>
+						<p>Sign out of Strikr on every device, including this one. Use this if you've lost a phone or used a shared computer.</p>
+					</div>
+
+					<button type="button" id="logout-everywhere-btn" class="solid2-btn">LOG OUT EVERYWHERE</button>
+				</div>
+
 				<div class="danger-zone">
 					<div>
 						<h2>DELETE ACCOUNT</h2>
-						<p>Permanently delete your account, profile, and all associated data. This cannot be undone.</p>
+						<p>Permanently delete your account, profile, and all associated data. We'll email you a link to confirm. This cannot be undone.</p>
 					</div>
 
 					<button type="button" id="delete-account-btn" class="solid-btn">DELETE ACCOUNT</button>
@@ -195,11 +209,11 @@
 	<dialog id="delete-account-dialog" class="confirm-modal">
 		<div class="confirm-content">
 			<h3>Delete Account</h3>
-			<p>This will permanently delete your account, profile, and all associated data. This action cannot be undone.</p>
+			<p>We'll email you a link to confirm. Clicking it permanently deletes your account, profile, and all associated data, and cannot be undone.</p>
 
 			<div class="confirm-actions">
 				<button type="button" id="cancel-delete-btn" class="solid2-btn">CANCEL</button>
-				<button type="button" id="confirm-delete-btn" class="solid-btn">DELETE MY ACCOUNT</button>
+				<button type="button" id="confirm-delete-btn" class="solid-btn">EMAIL ME THE LINK</button>
 			</div>
 		</div>
 	</dialog>

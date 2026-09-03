@@ -2,7 +2,7 @@ const pool = require("../db");
 const logger = require("../logger");
 
 /**
- * Returns the currently logged-in user's id, username, and profile picture.
+ * Returns the currently logged-in user's id, username, onboarding state, and profile picture.
  * @param {import("express").Request} req - Express request object.
  * @param {import("express").Response} res - Express response object.
  * @param {import("express").Response} next - Express middleware execution.
@@ -18,7 +18,7 @@ async function user_session(req, res, next){
 
 	try{
 		const result = await pool.query(
-			`SELECT u.id, u.username, u.is_admin, p.profile_picture_url
+			`SELECT u.id, u.username, u.is_admin, u.onboarding_complete, p.profile_picture_url
 				FROM users u
 				LEFT JOIN profiles p ON u.id = p.user_id
 				WHERE u.id = $1`,

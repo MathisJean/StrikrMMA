@@ -2,7 +2,7 @@
 //Set up libraries
 //`mailer` here is libs/token.js — the token helpers. libs/mailer.js only exports send_email,
 //so requiring that directly left peek_token/verify_and_consume_token undefined.
-const { express, pool, bcrypt, delete_cloudinary_image, errors, logger, mailer, validation, require_guest } = require("../libs/requirements");
+const { express, pool, delete_cloudinary_image, errors, logger, mailer, validation, require_guest, rate_limits } = require("../libs/requirements");
 const router = express.Router();
 
 //Setup Router
@@ -41,72 +41,64 @@ router.get("/", async(req, res) => {
 });
 
 /**
- * POST /claim/accept
- * Claims a profile: sets a real username/email/password/corner on the placeholder
- * user, marks it claimed, consumes the claim token, and starts a session — same
- * pattern as /auth/signup.
- * @param {import("express").Request} req - Express request object. Expects `token`, `username`, `email`, `password`, `corner` in the body.
+ * POST /claim/start
+ * Accepts the athlete's email on a claim they said is theirs, and emails them an ordinary
+ * magic link for the placeholder account.
+ *
+ * This is deliberately a two-token handoff. The claim token only proves the holder is
+ * authorised to answer a claim offer for this profile — it proves nothing about who owns the
+ * address typed in afterwards. Letting the claim token set the email and start a session
+ * would mean anyone who came across a forwarded claim link could point the profile at an
+ * address they control and log in as that athlete. The magic link sent here is what actually
+ * proves the address, and it logs in through the normal /auth/verify path.
+ * @param {import("express").Request} req - Express request object. Expects `token` and `email` in the body.
  * @param {import("express").Response} res - Express response object.
  * @returns {Promise<void>}
  */
-router.post("/accept", async(req, res) => {
+router.post("/start", rate_limits.request_link_ip_limit, rate_limits.request_link_email_limit, async(req, res) => {
 	const { token } = req.body;
 
 	if(!token) throw errors.bad_request("Missing claim token");
 
-	//Same rules as /auth/signup — a claim creates a real account, so it gets the same checks.
-	const corner = validation.validate_corner(req.body.corner);
-	const username = validation.validate_username(req.body.username);
 	const email = validation.validate_email(req.body.email);
-	const password = validation.validate_password(req.body.password);
 
-	const hashed_password = await bcrypt.hash(password, 10);
+	//The claim token is only peeked, not consumed: the claim is not finished until the
+	//emailed link is clicked, and burning it here would strand anyone who mistyped their
+	//address on the previous step.
+	const token_row = await mailer.peek_token({ raw_token: token, purpose: "profile_claim" });
 
-	const user_id = await pool.with_transaction(async(client) => {
-		const token_row = await mailer.verify_and_consume_token({ raw_token: token, purpose: "profile_claim", client });
+	if(!token_row){
+		throw errors.not_found("This claim link is invalid or has expired");
+	}
 
-		if(!token_row){
-			throw errors.conflict("This claim link is invalid or has expired");
-		}
+	const claim_target = await pool.query(`SELECT claimed FROM users WHERE id = $1`, [token_row.user_id]);
 
-		const email_check = await client.query(`SELECT id FROM users WHERE LOWER(email) = LOWER($1)`, [email]);
+	if(claim_target.rows.length === 0 || claim_target.rows[0].claimed){
+		throw errors.conflict("This profile was already claimed");
+	}
 
-		if(email_check.rows.length > 0){
-			throw errors.conflict("Email already registered");
-		}
+	const email_owner = await pool.query(`SELECT id FROM users WHERE LOWER(email) = LOWER($1)`, [email]);
 
-		const username_check = await client.query(`SELECT id FROM users WHERE LOWER(username) = LOWER($1)`, [username]);
+	if(email_owner.rows.length > 0 && email_owner.rows[0].id !== token_row.user_id){
+		throw errors.conflict("That email already belongs to a Strikr account. Log in with it instead.");
+	}
 
-		if(username_check.rows.length > 0){
-			throw errors.conflict("Username already registered");
-		}
+	//The address deliberately is NOT written onto the placeholder here. It rides on the
+	//magic-link token instead, and only lands on the row once the emailed link is actually
+	//clicked (see resolve_magic_login) — so nothing about this account changes until the
+	//address is proven, and a failed send leaves no trace behind.
+	try{
+		await mailer.send_magic_link({ email, user_id: token_row.user_id });
+	}
+	catch(err){
+		logger.error("Failed to send a claim login link", err);
 
-		const user_result = await client.query(
-			`UPDATE users SET username = $1, email = $2, password_hash = $3, corner = $4, claimed = true
-			 WHERE id = $5 AND claimed = false
-			 RETURNING id`,
-			[username, email, hashed_password, corner, token_row.user_id]
-		);
+		//Unlike /auth/request-link, this one reports the failure: the athlete is mid-flow and
+		//waiting on that email, so silently pretending it was sent would just strand them.
+		throw errors.server_error("We couldn't send that email. Please check the address and try again.");
+	}
 
-		if(user_result.rows.length === 0){
-			throw errors.conflict("This profile was already claimed");
-		}
-
-		return user_result.rows[0].id;
-	}).catch(err => {
-		//The uniqueness checks above race against a concurrent signup; the unique indexes on
-		//lower(username)/lower(email) settle it, so translate their verdict into a conflict.
-		if(err.code === "23505"){
-			throw errors.conflict("That username or email is already registered");
-		}
-
-		throw err;
-	});
-
-	req.session.user_id = user_id;
-	req.session.is_admin = false;
-
-	return res.status(200).json({ success: true, username });
+	return res.status(200).json({ message: "Check your email for a login link." });
 });
 
 /**

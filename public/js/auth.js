@@ -1,221 +1,150 @@
 
-import { attach_field_checks, USERNAME_REGEX, RESERVED_USERNAMES } from "/js/field_checks.js";
+//The login/signup slider and its #hash routing are gone: there is only one form here now,
+//so there are no two states left for a slide to distinguish. The slider technique moved to
+//onboarding and claim (see /js/steps.js), where there are real sequential steps.
 
-const auth_container = document.querySelector(".section-auth");
-const visual_container = document.querySelector(".section-visual");
-const login_switch_btn = document.getElementById("login-switch");
-const signup_switch_btn = document.getElementById("signup-switch");
-
-//Toggle to login In mode
-signup_switch_btn.addEventListener("click", () => {
-	auth_container.classList.remove("auth-signup");
-	visual_container.classList.remove("visual-signup");
-
-	history.pushState(null, "", "#login");
-});
-
-//Toggle to Sign Up mode
-login_switch_btn.addEventListener("click", () => {
-	auth_container.classList.add("auth-signup");
-	visual_container.classList.add("visual-signup");
-
-	history.pushState(null, "", "#signup");
-});
-
-// Auto-check URL hash on page load (e.g. if visiting /auth#signup)
-window.addEventListener("DOMContentLoaded", () => {
-	if(window.location.hash === "#signup"){
-		auth_container.classList.add("auth-signup");
-		visual_container.classList.add("visual-signup");
-	}
-});
-
-window.addEventListener("hashchange", () => {
-	if(window.location.hash === "#signup"){
-		auth_container.classList.add("auth-signup");
-		visual_container.classList.add("visual-signup");
-	}
-
-	if(window.location.hash === "#login"){
-		auth_container.classList.remove("auth-signup");
-		visual_container.classList.remove("visual-signup");
-	}
-});
-
-//-- Login Elements --//
-const login_form = document.getElementById("login-form");
-login_form.addEventListener("submit", event => login(event));
-
-/**
- * Submits the login form and redirects to the user's profile on success.
- * @param {SubmitEvent} event - The form submit event.
- * @returns {Promise<void>}
- */
-async function login(event){
-	event.preventDefault();
-
-	//Create form
-	let user_email = login_form.querySelector("input[type='email']").value || "";
-	let user_password = login_form.querySelector("input[type='password']").value || "";
-
-	if(user_email === "" || user_password === ""){
-		show_error("Login Failed", "401", "Invalid credentials");
-		return;
-	}
-
-	const login_creds = JSON.stringify({
-		email: user_email,
-		password: user_password
-	});
-
-	try{
-		const response = await fetch("/auth/login", {
-			method: "POST",
-			headers: {
-				"Content-Type": "application/json"
-			},
-			body: login_creds
-		});
-
-		const result = await response.json().catch(() => ({}));
-
-		if(!response.ok){
-			//The server replies with { error }, so that is the field to read.
-			const error = new Error(result.error || "An unexpected error occurred.");
-			error.status = response.status;
-			error.details = result.error || "Login failed.";
-			throw error;
-		}
-
-		window.location.href = "/u/" + result.username;
-	}
-	catch(err){
-		const status_code = err.status || "500";
-		const message = err.details || err.message || "Network error. Please try again.";
-
-		show_error("Login Failed", status_code, message);
-	}
-}
-
-//-- Signup Elements --//
-const signup_form = document.getElementById("signup-form");
-
-const first_name_input = document.getElementById("namef-input");
-const last_name_input = document.getElementById("namel-input");
-
-const username_input = document.getElementById("username-input");
-const username_status = document.getElementById("username-status");
-
+const request_form = document.getElementById("request-form");
+const request_btn = document.getElementById("request-btn");
 const email_input = document.getElementById("email-input");
-const email_status = document.getElementById("email-status");
 
-const password_input = document.getElementById("password-input");
-const password_status = document.getElementById("password-status");
+const sent_panel = document.getElementById("sent-panel");
+const sent_email = document.getElementById("sent-email");
 
-attach_field_checks({
-	username_input, username_status,
-	email_input, email_status,
-	password_input, password_status
-});
+const code_form = document.getElementById("code-form");
+const code_btn = document.getElementById("code-btn");
+const code_input = document.getElementById("code-input");
+const resend_btn = document.getElementById("resend-btn");
 
-signup_form.addEventListener("submit", event => signup(event));
+//Kept from the successful request so the code submission and any resend use exactly the
+//address the link was sent to, not whatever is in the input by then.
+let requested_email = "";
+
+//Reasons /auth/verify can bounce someone back here. The link is the one part of this flow
+//that lands as a full page load, so its failures arrive as a query parameter.
+const VERIFY_ERRORS = {
+	missing_token: "That link was incomplete. Request a new one.",
+	invalid_or_expired: "That link has expired or was already used. Request a new one.",
+	email_taken: "That email is already registered to another account. Log in with it directly.",
+	session_error: "Something went wrong starting your session. Please try again."
+};
+
+const error_param = new URLSearchParams(window.location.search).get("error");
+
+if(error_param && VERIFY_ERRORS[error_param]){
+	show_error("Login Failed", "", VERIFY_ERRORS[error_param], false);
+
+	//Cleared so a refresh doesn't replay the same message.
+	window.history.replaceState({}, "", window.location.pathname);
+}
 
 /**
- * Validates the signup form client-side and submits it, redirecting to the new profile on success.
- * @param {SubmitEvent} event - The form submit event.
- * @returns {Promise<void>}
+ * Reads a fetch response's JSON error body, falling back to a generic message.
+ * @param {Response} response - The fetch response.
+ * @param {string} fallback - Message to use when the body carries none.
+ * @returns {Promise<Error>} An error carrying the status and message.
  */
-async function signup(event){
-	event.preventDefault();
+async function response_error(response, fallback){
+	const result = await response.json().catch(() => ({}));
 
-	let user_first_name = first_name_input?.value.trim() || "";
-	let user_last_name = last_name_input?.value.trim() || "";
-	let user_corner = signup_form.querySelector("input[name='input-corner']:checked")?.value.trim() || "";
-	let user_username = username_input?.value.trim() || "";
-	let user_email = email_input?.value.trim() || "";
-	let user_password = password_input?.value || "";
+	const error = new Error(result.error || fallback);
+	error.status = response.status;
 
-	if(!user_corner){
-		show_error("Registration Failed", "400", "Please select a corner");
-		return;
-	}
+	return error;
+}
 
-	if(!user_first_name){
-		show_error("Registration Failed", "400", "Please enter your given name");
-		return;
-	}
-
-	if(!user_last_name){
-		show_error("Registration Failed", "400", "Please enter your family name");
-		return;
-	}
-
-	if(user_username.length < 3 || user_username.length > 30){
-		show_error("Registration Failed", "400", "Username must be between 3 and 30 characters");
-		return;
-	}
-
-	//2. Character format check
-	if(!USERNAME_REGEX.test(user_username)){
-		show_error("Registration Failed", "400", "Username can only contain letters, numbers, underscores, and hyphens");
-		return;
-	}
-
-	//3. Reserved keyword check
-	if(RESERVED_USERNAMES.includes(user_username.toLowerCase())){
-		show_error("Registration Failed", "400", "This username is reserved and cannot be registered");
-		return;
-	}
-
-	//4. Server availability check
-	if(username_input.dataset.status !== "y"){
-		show_error("Registration Failed", "400", "Username is already taken");
-		return;
-	}
-
-	if(email_input.dataset.status !== "y"){
-		show_error("Registration Failed", "400", "Invalid or unavailable email address");
-		return;
-	}
-
-	if(password_input.dataset.status !== "y"){
-		show_error("Registration Failed", "400", "Password must be at least 8 characters long");
-		return;
-	}
-
-	const payload = JSON.stringify({
-		corner: user_corner,
-		first_name: user_first_name,
-		last_name: user_last_name,
-		username: user_username,
-		email: user_email,
-		password: user_password
-	});
-
+/**
+ * Requests a login link and code for an address, and swaps the page over to the
+ * check-your-email panel on success.
+ * @param {string} email - Address to send the login to.
+ * @returns {Promise<boolean>} Whether the request succeeded.
+ */
+async function request_link(email){
 	try{
-		const response = await fetch("/auth/signup", {
+		const response = await fetch("/auth/request-link", {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json"
 			},
-			body: payload
+			body: JSON.stringify({ email })
 		});
 
-		const result = await response.json().catch(() => ({}));
+		if(!response.ok) throw await response_error(response, "Could not send a login link.");
 
-		if(!response.ok){
-			const error = new Error(result.error || "An unexpected error occurred.");
-			error.status = response.status;
-			error.details = result.error || "Signup failed.";
-			throw error;
-		}
+		requested_email = email;
+		sent_email.textContent = email;
 
-		window.location.href = "/u/" + user_username;
+		request_form.hidden = true;
+		sent_panel.hidden = false;
+		code_input.focus();
+
+		return true;
 	}
 	catch(err){
-		const status_code = err.status || "500";
-		const message = err.details || err.message || "Network error. Please try again.";
-
-		show_error("Registration Failed", status_code, message);
+		show_error("Login Failed", err.status || "500", err.message || "Network error. Please try again.");
+		return false;
 	}
 }
+
+request_form.addEventListener("submit", async(event) => {
+	event.preventDefault();
+
+	const email = email_input.value.trim();
+
+	if(!email || !email_input.checkValidity()){
+		show_error("Login Failed", "400", "Please enter a valid email address");
+		return;
+	}
+
+	//The button is disabled for the round trip so an impatient double-click cannot spend two
+	//of the five requests the rate limiter allows.
+	request_btn.disabled = true;
+
+	await request_link(email);
+
+	request_btn.disabled = false;
+});
+
+code_form.addEventListener("submit", async(event) => {
+	event.preventDefault();
+
+	const code = code_input.value.trim();
+
+	if(!/^[0-9]{6}$/.test(code)){
+		show_error("Login Failed", "400", "Enter the 6-digit code from your email");
+		return;
+	}
+
+	code_btn.disabled = true;
+
+	try{
+		const response = await fetch("/auth/verify-code", {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json"
+			},
+			body: JSON.stringify({ email: requested_email, code })
+		});
+
+		if(!response.ok) throw await response_error(response, "That code didn't work.");
+
+		const result = await response.json();
+
+		window.location.href = result.redirect;
+	}
+	catch(err){
+		show_error("Login Failed", err.status || "500", err.message || "Network error. Please try again.");
+		code_btn.disabled = false;
+	}
+});
+
+resend_btn.addEventListener("click", async() => {
+	if(!requested_email) return;
+
+	//A resend invalidates the previous code, so the stale one is cleared rather than left
+	//sitting in the field looking usable.
+	code_input.value = "";
+
+	if(await request_link(requested_email)){
+		show_error("Link Sent", "", `A new login link is on its way to ${requested_email}.`, false, false);
+	}
+});

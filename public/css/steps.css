@@ -1,0 +1,131 @@
+
+/* Shared multi-step slider, used by onboarding and the claim flow.
+   Both are sequential flows with real steps to move through, which is the job the old
+   two-panel login/signup swap used to do on the auth page. Same technique — one track
+   translated inside a clipping viewport — generalized from a binary swap to N steps. */
+
+.step-viewport{
+	overflow: hidden;
+
+	width: 100%;
+
+	/* Height is set from the active panel by steps.js. Left to itself the viewport would
+	   size to the tallest step and leave the short ones floating in dead space, since every
+	   panel stays in flow (they are only hidden, never removed). */
+	transition: height 350ms ease-in-out;
+}
+
+.step-track{
+	display: flex;
+	flex-direction: row;
+
+	align-items: flex-start;
+
+	transition: transform 350ms ease-in-out;
+}
+
+.step-panel{
+	/* Every panel is exactly one viewport wide, so the offset is a flat -100% per step. */
+	flex: 0 0 100%;
+	width: 100%;
+
+	/* A hidden panel must not be reachable by tab or read out by a screen reader —
+	   translating the track only moves it out of sight. */
+	visibility: hidden;
+
+	transition: visibility 350ms ease-in-out, opacity 350ms ease-in-out;
+	opacity: 0;
+}
+
+.step-panel.step-active{
+	visibility: visible;
+	opacity: 1;
+}
+
+.step-indicator{
+	width: 100%;
+
+	font-family: "Oswald", sans-serif;
+	font-size: 0.75em;
+	letter-spacing: 0.1em;
+
+	color: var(--placeholder-clr);
+}
+
+.step-actions{
+	display: flex;
+	flex-direction: row;
+
+	gap: 0.5em;
+
+	width: 100%;
+}
+
+.step-actions *{
+	width: 100%;
+}
+
+/* A skippable step needs its skip to read as the lesser action, not a second button. */
+.step-skip{
+	background: none;
+	border: none;
+
+	width: auto;
+
+	color: var(--placeholder-clr);
+	font-size: 0.75em;
+	font-family: inherit;
+
+	text-decoration: underline;
+	cursor: pointer;
+
+	transition: color 200ms ease;
+}
+
+.step-skip:hover{
+	color: var(--blue);
+}
+
+.step-summary{
+	display: flex;
+	flex-direction: column;
+
+	gap: 0.25em;
+
+	width: 100%;
+
+	padding: 0.5em 0em;
+}
+
+.step-summary div{
+	display: flex;
+	flex-direction: row;
+
+	justify-content: space-between;
+	gap: 1em;
+
+	font-size: 0.75em;
+}
+
+.step-summary span:first-child{
+	font-family: "Oswald", sans-serif;
+	color: var(--placeholder-clr);
+}
+
+.step-summary span:last-child{
+	text-align: right;
+
+	overflow-wrap: anywhere;
+}
+
+/* The track stays horizontal at every width. A vertical axis on mobile would have to offset
+   by each step's own height, and these steps are deliberately different heights — a flat
+   -100% per step only holds on the axis where every panel is exactly one viewport wide. */
+
+@media (prefers-reduced-motion: reduce){
+	.step-viewport,
+	.step-track,
+	.step-panel{
+		transition: none;
+	}
+}
