@@ -5,14 +5,11 @@ const { express, mailer, errors, logger, validation, require_guest, rate_limits 
 const router = express.Router()
 
 //Setup Router
-//require_guest is deliberately NOT applied to the whole router: the verification routes have
-//to work while a stale session is still around (switching accounts, or a link clicked in a
-//browser that is already signed in as someone else).
+//require_guest is not applied router-wide: verification must work with a stale session around.
 
 /**
- * Starts a fresh session for a resolved magic-link login. The session ID is regenerated
- * rather than reused so an attacker cannot pre-set a session ID for a victim to log into
- * (session fixation).
+ * Starts a fresh session for a resolved login. The session ID is regenerated, not reused, so
+ * an attacker cannot pre-set one for a victim to log into (session fixation).
  * @param {import("express").Request} req - Express request object.
  * @param {{ user_id: string, is_admin: boolean }} account - Account resolved from the consumed token.
  * @returns {Promise<void>}
@@ -23,12 +20,10 @@ function start_session(req, account){
 			if(err) return reject(err);
 
 			req.session.user_id = account.user_id;
-			//require_admin reads this off the session, so a login that only set user_id
-			//would silently strip an admin of their admin rights.
+			//require_admin reads this, so setting only user_id would silently strip admin rights.
 			req.session.is_admin = account.is_admin;
 
-			//The regenerated session has to be written before the response redirects, or the
-			//next request arrives with a cookie the store knows nothing about.
+			//Written before the redirect, or the next request carries a cookie the store never saw.
 			req.session.save(save_err => save_err ? reject(save_err) : resolve());
 		});
 	});
@@ -62,9 +57,8 @@ router.get("/", require_guest, (req, res) => {
 
 /**
  * POST /request-link
- * Emails a login link and a 6-digit code for the submitted address. Handles new and
- * returning users identically — no account is created here, only when the link or code is
- * actually used, so submitting addresses cannot mint user rows.
+ * Emails a login link and code for the submitted address, treating new and returning users
+ * identically. No account is created until the link is used, so this cannot mint user rows.
  * @param {import("express").Request} req - Express request object. Expects `email` in the body.
  * @param {import("express").Response} res - Express response object.
  * @returns {Promise<void>}
@@ -72,9 +66,7 @@ router.get("/", require_guest, (req, res) => {
 router.post("/request-link", require_guest, rate_limits.request_link_ip_limit, rate_limits.request_link_email_limit, async(req, res) => {
 	const email = validation.validate_email(req.body.email);
 
-	//Delivery failures are logged but never reported: the response has to look identical
-	//whether or not that address has an account, or this endpoint becomes a way to ask
-	//which emails are registered.
+	//Logged, never reported: an identical response stops this becoming an email-registered oracle.
 	await mailer.send_magic_link({ email }).catch(err => logger.error("Failed to send a login link", err));
 
 	return res.status(200).json({ message: "Check your email for a login link." });
@@ -103,19 +95,28 @@ router.get("/verify", async(req, res) => {
 
 	const account = await mailer.resolve_magic_login(token_row).catch(err => {
 		if(err instanceof mailer.EmailTakenError) return "email_taken";
+		if(err instanceof mailer.ClaimSupersededError) return "claim_superseded";
 
 		throw err;
 	});
 
-	if(account === "email_taken"){
-		return res.redirect("/auth?error=email_taken");
+	if(typeof account === "string"){
+		return res.redirect(`/auth?error=${account}`);
 	}
 
 	if(!account){
 		return res.redirect("/auth?error=invalid_or_expired");
 	}
 
-	await start_session(req, account);
+	//The client has a message for this, so a failed start returns to the form, not the 500 page.
+	try{
+		await start_session(req, account);
+	}
+	catch(err){
+		logger.error("Failed to start a session after a magic link login", err);
+
+		return res.redirect("/auth?error=session_error");
+	}
 
 	return res.redirect(post_login_path(account));
 });
@@ -144,6 +145,7 @@ router.post("/verify-code", rate_limits.verify_code_limit, async(req, res) => {
 
 	const account = await mailer.resolve_magic_login(token_row).catch(err => {
 		if(err instanceof mailer.EmailTakenError) throw errors.conflict(err.message, "json");
+		if(err instanceof mailer.ClaimSupersededError) throw errors.conflict(err.message, "json");
 
 		throw err;
 	});

@@ -59,9 +59,8 @@ router.get("/reports", async(req, res) => {
 
 /**
  * POST /admin/profiles
- * Creates an unclaimed placeholder profile (users + profiles + records rows) for
- * an athlete to claim later. Corner defaults to "red" as a placeholder — the real
- * value is chosen by the athlete when they claim the profile.
+ * Creates an unclaimed placeholder (users + profiles + records) for an athlete to claim later.
+ * Corner defaults to "red"; the athlete picks the real one during onboarding.
  * @param {import("express").Request} req - Express request object. Expects `first_name`, `last_name`, and optionally `badge` ("none" | "founding_member" | "beta_tester") in the body.
  * @param {import("express").Response} res - Express response object.
  * @returns {Promise<void>}
@@ -113,9 +112,8 @@ router.post("/profiles", async(req, res) => {
 
 /**
  * POST /admin/profiles/:user_id/claim-link
- * Generates (or regenerates, e.g. after expiry) a claim link for an unclaimed
- * placeholder profile. The link is returned for manual delivery, not emailed —
- * no real email exists on file for a placeholder account yet.
+ * Generates or regenerates a claim link for a placeholder. Returned for manual delivery, since
+ * a placeholder has no email on file to send it to.
  * @param {import("express").Request} req - Express request object. Expects `user_id` route param.
  * @param {import("express").Response} res - Express response object.
  * @returns {Promise<void>}
@@ -146,9 +144,8 @@ router.post("/profiles/:user_id/claim-link", async(req, res) => {
 
 /**
  * DELETE /admin/profiles/:user_id
- * Permanently deletes an unclaimed placeholder profile (cascading through
- * profiles/records/auth_tokens). Guarded to claimed = false so a real, claimed
- * account can never be deleted through this path, even under a race.
+ * Permanently deletes an unclaimed placeholder and its cascades. Guarded on claimed = false,
+ * so a real account can never be deleted through this path, even under a race.
  * @param {import("express").Request} req - Express request object. Expects `user_id` route param.
  * @param {import("express").Response} res - Express response object.
  * @returns {Promise<void>}

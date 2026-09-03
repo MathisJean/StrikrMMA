@@ -1,7 +1,6 @@
 
 //Set up libraries
-//`mailer` here is libs/token.js — the token helpers. libs/mailer.js only exports send_email,
-//so requiring that directly left peek_token/verify_and_consume_token undefined.
+//`mailer` here is libs/token.js; libs/mailer.js only exports send_email.
 const { express, pool, delete_cloudinary_image, errors, logger, mailer, validation, require_guest, rate_limits } = require("../libs/requirements");
 const router = express.Router();
 
@@ -42,15 +41,8 @@ router.get("/", async(req, res) => {
 
 /**
  * POST /claim/start
- * Accepts the athlete's email on a claim they said is theirs, and emails them an ordinary
- * magic link for the placeholder account.
- *
- * This is deliberately a two-token handoff. The claim token only proves the holder is
- * authorised to answer a claim offer for this profile — it proves nothing about who owns the
- * address typed in afterwards. Letting the claim token set the email and start a session
- * would mean anyone who came across a forwarded claim link could point the profile at an
- * address they control and log in as that athlete. The magic link sent here is what actually
- * proves the address, and it logs in through the normal /auth/verify path.
+ * Emails an ordinary magic link for the placeholder. A deliberate two-token handoff: the claim
+ * token proves nothing about the address typed in, so only the magic link can start a session.
  * @param {import("express").Request} req - Express request object. Expects `token` and `email` in the body.
  * @param {import("express").Response} res - Express response object.
  * @returns {Promise<void>}
@@ -62,9 +54,7 @@ router.post("/start", rate_limits.request_link_ip_limit, rate_limits.request_lin
 
 	const email = validation.validate_email(req.body.email);
 
-	//The claim token is only peeked, not consumed: the claim is not finished until the
-	//emailed link is clicked, and burning it here would strand anyone who mistyped their
-	//address on the previous step.
+	//Peeked, not consumed: burning it here would strand anyone who mistyped their address.
 	const token_row = await mailer.peek_token({ raw_token: token, purpose: "profile_claim" });
 
 	if(!token_row){
@@ -83,18 +73,14 @@ router.post("/start", rate_limits.request_link_ip_limit, rate_limits.request_lin
 		throw errors.conflict("That email already belongs to a Strikr account. Log in with it instead.");
 	}
 
-	//The address deliberately is NOT written onto the placeholder here. It rides on the
-	//magic-link token instead, and only lands on the row once the emailed link is actually
-	//clicked (see resolve_magic_login) — so nothing about this account changes until the
-	//address is proven, and a failed send leaves no trace behind.
+	//The address rides on the token, not the row, so nothing changes until it is proven.
 	try{
 		await mailer.send_magic_link({ email, user_id: token_row.user_id });
 	}
 	catch(err){
 		logger.error("Failed to send a claim login link", err);
 
-		//Unlike /auth/request-link, this one reports the failure: the athlete is mid-flow and
-		//waiting on that email, so silently pretending it was sent would just strand them.
+		//Unlike /auth/request-link this reports failure: the athlete is mid-flow waiting on it.
 		throw errors.server_error("We couldn't send that email. Please check the address and try again.");
 	}
 
@@ -103,9 +89,8 @@ router.post("/start", rate_limits.request_link_ip_limit, rate_limits.request_lin
 
 /**
  * POST /claim/decline
- * Declines a claim: hard-deletes the placeholder profile (cascading through
- * profiles/records/auth_tokens). No consent basis exists to retain the data
- * once the real athlete says it isn't them.
+ * Declines a claim, hard-deleting the placeholder and its cascades. No consent basis exists to
+ * keep the data once the athlete says it isn't them.
  * @param {import("express").Request} req - Express request object. Expects `token` in the body.
  * @param {import("express").Response} res - Express response object.
  * @returns {Promise<void>}
@@ -117,8 +102,7 @@ router.post("/decline", async(req, res) => {
 		throw errors.bad_request("Missing token");
 	}
 
-	//The URLs are gathered inside the transaction but destroyed only once it commits —
-	//deleting first meant a rollback left a live profile pointing at missing images.
+	//Gathered inside the transaction, destroyed after it commits, or a rollback strands the row.
 	const media_urls = await pool.with_transaction(async(client) => {
 		const token_row = await mailer.verify_and_consume_token({ raw_token: token, purpose: "profile_claim", client });
 
@@ -131,8 +115,7 @@ router.post("/decline", async(req, res) => {
 			[token_row.user_id]
 		);
 
-		//TODO: Collect highlight video_urls here too once the highlights feature ships. The
-		//table does not currently exist, and querying it made every decline fail.
+		//TODO: Collect highlight video_urls here once that feature ships; the table does not exist yet.
 		const deleted = await client.query(`DELETE FROM users WHERE id = $1 AND claimed = false RETURNING id`, [token_row.user_id]);
 
 		//Nothing was deleted, so nothing is orphaned — leave the media alone.

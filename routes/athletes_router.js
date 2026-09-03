@@ -3,8 +3,7 @@
 const { express, pool, errors, require_login } = require("../libs/requirements");
 const router = express.Router()
 
-//Shown when a profile somehow has no `records` row, so both views can render a zero record
-//without every field needing a null guard. Rebuilt per call so a caller can't mutate it.
+//A zero record for a profile with no `records` row; rebuilt per call so callers cannot mutate it.
 const empty_record = () => ({
 	wins: 0,
 	losses: 0,

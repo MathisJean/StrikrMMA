@@ -1,7 +1,5 @@
 
-//Shared username/email field validation for the onboarding and claim flows. These checks
-//only pre-empt the error for the user — libs/validation.js on the server is what actually
-//decides.
+//Shared field validation for onboarding and claim; libs/validation.js is what actually decides.
 
 export const USERNAME_REGEX = /^[a-zA-Z0-9_-]{3,30}$/;
 
@@ -57,8 +55,7 @@ function clear_field_status(status_el, input_el){
  * @returns {Promise<boolean>} True if available.
  */
 async function is_available(username){
-	//Lives under /api rather than /auth: onboarding calls it with a session already in
-	//place, and the auth routes turn a logged-in caller away.
+	//Under /api, not /auth: onboarding calls it with a session, and auth turns those away.
 	const response = await fetch(`/api/username-availability?username=${encodeURIComponent(username)}`);
 
 	if(!response.ok) return false;
@@ -99,9 +96,7 @@ export function attach_field_checks({ username_input, username_status, email_inp
 		}));
 	}
 
-	//Shape only. Whether an address is already registered is deliberately not checked here:
-	//an endpoint answering that question turns any form into a way to ask which emails have
-	//Strikr accounts. The server reports the collision when it matters.
+	//Shape only: an is-this-registered endpoint would turn any form into an email oracle.
 	if(email_input && email_status){
 		email_input.addEventListener("input", debounce(() => {
 			const email = email_input.value.trim();

@@ -1,13 +1,11 @@
 
 window.addEventListener("DOMContentLoaded", async() => {
-	//Clean Search Parameters on Refresh. build_search_url is defined further down but
-	//hoisted, and this only runs on DOMContentLoaded, so it is available by then.
+	//build_search_url is hoisted, so it exists by the time DOMContentLoaded fires.
 	window.history.replaceState({}, "", build_search_url());
 });
 
 //-- Dynamic viewport height --//
-//In-app browsers (Instagram/TikTok webviews) resize their own chrome, so
-//visualViewport is tracked as the primary height source, not dvh alone.
+//In-app browsers resize their own chrome, so visualViewport leads rather than dvh alone.
 /**
  * Measures the real visible viewport height and exposes it as --app-height.
  * @returns {void}
@@ -57,8 +55,7 @@ async function logout(){
 		const response = await fetch("/api/logout", { method: "POST" });
 
 		if(!response.ok){
-			//The message lives in the JSON body — reading it off the Response itself
-			//always yielded undefined, so every failure read as a bare "Please Try Again".
+			//The message lives in the JSON body; reading it off the Response yields undefined.
 			const result = await response.json().catch(() => ({}));
 
 			const error = new Error(result.error || "Logout Failed");
@@ -137,17 +134,12 @@ let cached_results = {};
 let page = 1;
 let debounce_timeout;
 
-//The only query parameters the search bar owns. Everything else in the query string
-//belongs to the page itself (?token= on /claim, for one) and must survive untouched.
+//The only parameters the search bar owns; everything else (?token= on /claim) must survive.
 const SEARCH_PARAM_KEYS = ["search", "page", "limit"];
 
 /**
- * Rewrites only the search bar's own query parameters on the current URL, leaving every
- * other parameter and the hash exactly as they were.
- *
- * Order matters: a URL is `path?query#hash`. Serialising it as path + hash + query buries
- * the query inside the fragment, so `/claim?token=x#s` would come back as
- * `/claim#s?token=x` and the token would stop being readable as a query parameter.
+ * Rewrites only the search bar's own query parameters, leaving every other parameter and the
+ * hash intact. Order matters: path + hash + query would bury the query inside the fragment.
  * @param {{search: string, page: number, limit: number}} [values] - Values to set; omit to remove them.
  * @returns {string} A same-origin URL suitable for history.pushState / replaceState.
  */
@@ -162,9 +154,7 @@ function build_search_url(values){
 	return `${url.pathname}${url.search}${url.hash}`;
 }
 
-//Set only by an explicit page change. Typing, focusing, or pressing Enter re-renders the
-//same search in place, so those replace the current entry instead of stacking a new one —
-//otherwise a five-letter query left five entries to back out of.
+//Set only by an explicit page change; typing replaces the entry instead of stacking one per keystroke.
 let push_next_history_entry = false;
 
 /**
@@ -276,8 +266,7 @@ search_form.addEventListener("submit", async(event) => {
 	let search = form_data.get("search");
 	search = search === "" ? "*" : search;
 
-	//Only the search bar's own parameters are replaced — building a fresh URLSearchParams
-	//dropped whatever else the page had, so searching from /claim?token=... lost the token.
+	//Replaces only the search bar's parameters; a fresh URLSearchParams dropped /claim's token.
 	const url = build_search_url({ search, page, limit });
 
 	if(cached_results[search] && cached_results[search][page] && cached_results[search][page][limit]){
@@ -342,8 +331,7 @@ function render_users(profiles){
 		const info = document.createElement("div");
 		info.classList.add("user-info");
 
-		//Built as text nodes rather than an innerHTML template: these are athlete-controlled
-		//strings, and a nickname carrying markup would otherwise run in every searcher's page.
+		//Text nodes, not innerHTML: a nickname carrying markup would run in every searcher's page.
 		const name = document.createElement("div");
 		name.classList.add("user-name");
 		name.textContent = [
@@ -437,8 +425,7 @@ function change_page(profiles){
 			p.addEventListener("click", () => {
 				page = i;
 
-				//An explicit page change is the one search action worth a history entry,
-				//so the back button steps between pages rather than through keystrokes.
+				//The one search action worth a history entry, so back steps pages, not keystrokes.
 				push_next_history_entry = true;
 
 				search_form.requestSubmit();

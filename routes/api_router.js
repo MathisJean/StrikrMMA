@@ -33,17 +33,13 @@ const EDITABLE_FIELDS = {
 	]
 };
 
-//Columns holding a Cloudinary URL. Declared rather than inferred from the incoming value —
-//inferring it treated every *cleared* field as a media field, which sent text columns down
-//the upload/delete path and blew up on the virtual height fields.
+//Declared, not inferred: inferring from an empty value sent every cleared text field down the upload path.
 const FILE_FIELDS = new Set(["profile_picture_url", "profile_banner_url"]);
 
-//multer only accepts files under these exact field names, so an unexpected field is
-//rejected outright instead of being read into memory.
+//multer accepts only these field names, so an unexpected file is rejected before it is read into memory.
 const UPLOAD_FIELDS = [...FILE_FIELDS].map(name => ({ name, maxCount: 1 }));
 
-//Columns that must stay numeric. Every `records` column is NOT NULL, so a cleared input
-//has to land as 0, never NULL.
+//Every `records` column is NOT NULL, so a cleared input has to land as 0, never NULL.
 const NUMERIC_FIELDS = {
 	profiles: new Set(),
 	records: new Set(["wins", "losses", "draws", "no_contests", "ko", "submissions"])
@@ -53,9 +49,8 @@ const NUMERIC_FIELDS = {
 const HEIGHT_PARTS = ["height_feet", "height_inches"];
 
 /**
- * Folds the form's two virtual height inputs back into the single `profiles.height` column.
- * A part that wasn't submitted at all is read back off the row so the untouched half survives;
- * a part that was submitted blank counts as 0, so clearing both clears the height.
+ * Folds the form's two height inputs into the single `profiles.height` column. An unsubmitted
+ * part is read back off the row; a blank one counts as 0, so clearing both clears the height.
  * @param {string} profile_id - Profile whose height is being set.
  * @param {object} fields - Incoming field values for the profiles group.
  * @returns {Promise<number|null>} Total height in inches, or null when nothing is set.
@@ -98,16 +93,8 @@ function normalize_value(table_name, key, value){
 }
 
 /**
- * Applies an allow-listed set of field updates to a single-row table, handling
- * file-field uploads/removals through Cloudinary. Never throws — a failure here
- * only affects this one table's update, not the other groups in the same PATCH
- * (each group is applied independently; partial success is expected). Reports
- * what failed instead, so the caller can tell the user.
- *
- * Old assets are never deleted here directly — only tracked, and only actually
- * deleted once this table's own UPDATE has confirmed succeeded. Newly uploaded
- * assets are tracked too, and cleaned up if this table's update fails, since a
- * failed update never persists their URL anywhere.
+ * Applies allow-listed field updates to a single-row table, media included. Never throws, so
+ * one group cannot block another; old assets are deleted only once the UPDATE succeeds.
  * @param {string} table_name - Table to update. Must be a key of EDITABLE_FIELDS.
  * @param {string} where_column - Column used to locate the row.
  * @param {string} where_value - Value matched against where_column.
@@ -143,8 +130,7 @@ async function update_simple_table(table_name, where_column, where_value, fields
 			const uploaded_file = req.files?.[key]?.[0];
 			const is_removal = fields[key] === null || fields[key] === "";
 
-			//A media field carrying a plain string but no file is the client echoing back a URL
-			//it already had. Ignoring it keeps a caller from pointing the column at an arbitrary URL.
+			//A string with no file is the client echoing back its own URL; ignoring it stops a caller setting an arbitrary one.
 			if(!uploaded_file && !is_removal) continue;
 
 			const { rows } = await pool.query(
@@ -193,9 +179,7 @@ async function update_simple_table(table_name, where_column, where_value, fields
 	catch(err){
 		logger.error(`Failed to update ${table_name}`, err);
 
-		//This table's update failed — any freshly uploaded assets never made it
-		//into a saved row, so clean them up. Old assets were never touched, so
-		//whatever was there before is still valid and displays fine.
+		//Nothing was saved, so the new uploads are orphans; the old assets were never touched.
 		media_tracking.uploaded.forEach(url => {
 			delete_cloudinary_image(url).catch(cleanup_err => logger.error("Failed to clean up orphaned upload after failed update", cleanup_err));
 		});
@@ -203,8 +187,7 @@ async function update_simple_table(table_name, where_column, where_value, fields
 		return { table_failed: true, failed_uploads, media: {} };
 	}
 
-	//Update succeeded — the new values are the source of truth now, so it's safe
-	//to delete whatever they superseded.
+	//The new values are the source of truth now, so what they superseded can go.
 	media_tracking.superseded.forEach(url => {
 		delete_cloudinary_image(url).catch(err => logger.error("Orphaned image cleanup failed", err));
 	});
@@ -213,9 +196,8 @@ async function update_simple_table(table_name, where_column, where_value, fields
 }
 
 /**
- * Replaces a profile's weight classes with the given set of entries. Runs as its
- * own small transaction (so the delete+reinsert can't half-apply), independent of
- * every other group in the same PATCH. Never throws — logs and reports failure instead.
+ * Replaces a profile's weight classes. Its own transaction so the delete+reinsert cannot
+ * half-apply; never throws, so one group's failure cannot block the rest of the PATCH.
  * @param {string} profile_id - Profile the weight classes belong to.
  * @param {{ name: string, gender: string }[]} entries - Weight classes to assign.
  * @returns {Promise<boolean>} True if the update succeeded.
@@ -248,9 +230,8 @@ async function update_weight_classes(profile_id, entries){
 }
 
 /**
- * Replaces a profile's martial arts with the given set of entries. Runs as its
- * own small transaction, independent of every other group in the same PATCH.
- * Never throws — logs and reports failure instead.
+ * Replaces a profile's martial arts. Its own transaction, and never throws, so one group's
+ * failure cannot block the rest of the PATCH.
  * @param {string} profile_id - Profile the martial arts belong to.
  * @param {{ name: string }[]} entries - Martial arts to assign.
  * @returns {Promise<boolean>} True if the update succeeded.
@@ -282,9 +263,8 @@ async function update_martial_arts(profile_id, entries){
 }
 
 /**
- * Replaces a profile's tags with the given set of entries, preserving order. Runs
- * as its own small transaction, independent of every other group in the same
- * PATCH. Never throws — logs and reports failure instead.
+ * Replaces a profile's tags, preserving order. Its own transaction, and never throws, so one
+ * group's failure cannot block the rest of the PATCH.
  * @param {string} profile_id - Profile the tags belong to.
  * @param {{ tag_text: string }[]} entries - Tags to assign, in display order.
  * @returns {Promise<boolean>} True if the update succeeded.
@@ -314,9 +294,8 @@ async function update_tags(profile_id, entries){
 }
 
 /**
- * Replaces a profile's awards with the given set of entries. Runs as its own
- * small transaction, independent of every other group in the same PATCH. Never
- * throws — logs and reports failure instead.
+ * Replaces a profile's awards. Its own transaction, and never throws, so one group's failure
+ * cannot block the rest of the PATCH.
  * @param {string} profile_id - Profile the awards belong to.
  * @param {{ title: string, description?: string }[]} entries - Awards to assign, in display order.
  * @returns {Promise<boolean>} True if the update succeeded.
@@ -326,8 +305,7 @@ async function update_awards(profile_id, entries){
 		await pool.with_transaction(async(client) => {
 			await client.query(`DELETE FROM awards WHERE profile_id = $1`, [profile_id]);
 
-			//sort_order is written from the form position, the same way tags are. Ordering by
-			//date_earned instead meant every award sorted on a NULL and came back shuffled.
+			//Written from the form position like tags; ordering by the always-null date_earned shuffled them.
 			let sort_order = 0;
 
 			for(const entry of entries){
@@ -351,10 +329,7 @@ async function update_awards(profile_id, entries){
 	}
 }
 
-//Free-text fields keyed by the group they arrive in, with the label used in the error
-//message. Every one of these lands in an unbounded varchar/text column, so the cap is the
-//only thing standing between a paste and an arbitrarily large payload on every page that
-//renders the profile. Views escape their output, so this is about size, not markup.
+//Free-text fields by group, with error labels. The columns are unbounded, so this caps size — views handle markup.
 const TEXT_FIELDS = {
 	profiles: {
 		nickname: "Nickname",
@@ -376,10 +351,8 @@ const TEXT_LENGTH_KEYS = {
 };
 
 /**
- * Enforces the free-text length caps across a whole incoming update payload, before any
- * group is applied. Done up front rather than inside update_simple_table, because that
- * function reports failures as a generic "this group failed" and would swallow the specific
- * message telling the user which field was too long.
+ * Enforces free-text length caps across the whole payload before any group is applied, so an
+ * over-long field names itself instead of surfacing as a generic "this group failed".
  * @param {object} data - Parsed update payload keyed by group.
  * @returns {void}
  * @throws {import("../libs/errors.js").AppError} 400 if any free-text field exceeds its cap.
@@ -411,10 +384,8 @@ function validate_payload_text(data){
 
 /**
  * PATCH /update/profile
- * Applies a batch of profile/record/collection updates for the caller's own profile.
- * Each group (profiles, records, weight classes, martial arts, tags, awards) is applied
- * independently — one group failing does not undo or block any other group. Only the
- * initial ownership check is a hard stop for the whole request.
+ * Applies a batch of profile updates. Each group is applied independently — only the ownership
+ * check is a hard stop for the whole request.
  * @param {import("express").Request} req - Express request object. Expects a `json` field describing the update groups, plus optional uploaded files.
  * @param {import("express").Response} res - Express response object.
  * @returns {Promise<void>}
@@ -431,8 +402,7 @@ router.patch("/update/profile", require_login("json"), upload.fields(UPLOAD_FIEL
 
 	const id = validation.validate_uuid(data?.id, "profile id");
 
-	//Checked before the ownership lookup runs any groups, so an over-long field is reported
-	//as itself instead of as a partially-applied save.
+	//Before any group runs, so an over-long field reports itself rather than a half-applied save.
 	validate_payload_text(data);
 
 	const profiles = await pool.query(
@@ -512,12 +482,8 @@ router.patch("/update/profile", require_login("json"), upload.fields(UPLOAD_FIEL
 
 /**
  * POST /request-deletion
- * Emails the account's own address a single-use link confirming deletion.
- *
- * This replaces the "re-type your password" step that a password-based app would use here.
- * It is a stronger guarantee, not just a substitute: it proves current access to the email
- * account rather than knowledge of a string, so an unlocked device left lying around cannot
- * be used to delete an account someone else set up.
+ * Emails a single-use deletion link. Replaces the password re-type a password app would use,
+ * and proves current inbox access rather than knowledge of a string.
  * @param {import("express").Request} req - Express request object.
  * @param {import("express").Response} res - Express response object.
  * @returns {Promise<void>}
@@ -558,8 +524,7 @@ router.post("/request-deletion", require_login("json"), rate_limits.deletion_req
 	catch(err){
 		logger.error("Failed to send an account deletion link", err);
 
-		//The caller is waiting on that email to finish deleting their account, so a failure
-		//has to say so rather than leaving them watching an inbox nothing is coming to.
+		//The caller is waiting on this email, so a failure has to say so rather than strand them.
 		throw errors.server_error("We couldn't send the confirmation email. Please try again.");
 	}
 
@@ -568,37 +533,34 @@ router.post("/request-deletion", require_login("json"), rate_limits.deletion_req
 
 /**
  * POST /logout-everywhere
- * Ends every session belonging to the caller, on every device.
- *
- * With no password there is no other way to invalidate a session on a lost or stolen device —
- * that used to fall out of a password reset, and this design has none.
+ * Ends every session belonging to the caller. With no password there is no other way to
+ * invalidate a session on a lost device.
  * @param {import("express").Request} req - Express request object.
  * @param {import("express").Response} res - Express response object.
  * @returns {Promise<void>}
  */
 router.post("/logout-everywhere", require_login("json"), async(req, res) => {
-	//connect-pg-simple stores the session payload as JSON in `sess`; the column is `json`,
-	//not `jsonb`, so the cast is what makes the ->> lookup available.
+	//`sess` is a json column, not jsonb, so the cast is what makes the ->> lookup available.
 	await pool.query(
 		`DELETE FROM session WHERE sess::jsonb ->> 'user_id' = $1`,
 		[req.session.user_id]
 	);
 
-	//This request's own session row was just deleted along with the rest, so the cookie
-	//still in the browser now points at nothing.
+	//Destroyed as well as deleted, or the in-memory session could be written back on the way out.
+	await new Promise(resolve => req.session.destroy(() => resolve()));
+
 	res.clearCookie("connect.sid");
 	return res.status(200).json({ message: "Logged out of all devices." });
 });
 
 /**
  * GET /username-availability
- * Checks whether a username is still free. Unauthenticated: it is called from onboarding,
- * where the caller has a session but has not finished setting up their account.
+ * Checks whether a username is free. Unauthenticated, since onboarding calls it before setup finishes.
  * @param {import("express").Request} req - Express request object. Expects `username` in the query string.
  * @param {import("express").Response} res - Express response object.
  * @returns {Promise<void>}
  */
-router.get("/username-availability", async(req, res) => {
+router.get("/username-availability", rate_limits.public_read_limit, async(req, res) => {
 	const { username } = req.query;
 
 	if(typeof username !== "string" || username.trim() === ""){
@@ -636,7 +598,7 @@ router.post("/logout", async(req, res) => {
  * @param {import("express").Response} res - Express response object.
  * @returns {Promise<void>}
  */
-router.get("/athletes", async(req, res) => {
+router.get("/athletes", rate_limits.public_read_limit, async(req, res) => {
 	const limit = Math.min(parseInt(req.query.limit) || 20, 50);
 	const page = Math.max(parseInt(req.query.page) || 1, 1);
 	const offset = limit * (page - 1);

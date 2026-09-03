@@ -1,7 +1,5 @@
 
-//The login/signup slider and its #hash routing are gone: there is only one form here now,
-//so there are no two states left for a slide to distinguish. The slider technique moved to
-//onboarding and claim (see /js/steps.js), where there are real sequential steps.
+//One form now, so the login/signup slider is gone; the technique moved to /js/steps.js.
 
 const request_form = document.getElementById("request-form");
 const request_btn = document.getElementById("request-btn");
@@ -15,16 +13,15 @@ const code_btn = document.getElementById("code-btn");
 const code_input = document.getElementById("code-input");
 const resend_btn = document.getElementById("resend-btn");
 
-//Kept from the successful request so the code submission and any resend use exactly the
-//address the link was sent to, not whatever is in the input by then.
+//Kept from the successful request, so a resend uses the address the link went to.
 let requested_email = "";
 
-//Reasons /auth/verify can bounce someone back here. The link is the one part of this flow
-//that lands as a full page load, so its failures arrive as a query parameter.
+//The link is the one full page load in this flow, so its failures arrive as a query parameter.
 const VERIFY_ERRORS = {
 	missing_token: "That link was incomplete. Request a new one.",
 	invalid_or_expired: "That link has expired or was already used. Request a new one.",
 	email_taken: "That email is already registered to another account. Log in with it directly.",
+	claim_superseded: "This profile has already been claimed. Log in with the email it was claimed with.",
 	session_error: "Something went wrong starting your session. Please try again."
 };
 
@@ -33,8 +30,11 @@ const error_param = new URLSearchParams(window.location.search).get("error");
 if(error_param && VERIFY_ERRORS[error_param]){
 	show_error("Login Failed", "", VERIFY_ERRORS[error_param], false);
 
-	//Cleared so a refresh doesn't replay the same message.
-	window.history.replaceState({}, "", window.location.pathname);
+	//Only the error is dropped so a refresh cannot replay it; any other parameter and the hash stay.
+	const url = new URL(window.location.href);
+	url.searchParams.delete("error");
+
+	window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
 }
 
 /**
@@ -95,8 +95,7 @@ request_form.addEventListener("submit", async(event) => {
 		return;
 	}
 
-	//The button is disabled for the round trip so an impatient double-click cannot spend two
-	//of the five requests the rate limiter allows.
+	//Disabled for the round trip, so a double-click cannot spend two of the five allowed requests.
 	request_btn.disabled = true;
 
 	await request_link(email);
@@ -140,8 +139,7 @@ code_form.addEventListener("submit", async(event) => {
 resend_btn.addEventListener("click", async() => {
 	if(!requested_email) return;
 
-	//A resend invalidates the previous code, so the stale one is cleared rather than left
-	//sitting in the field looking usable.
+	//A resend retires the previous code, so the stale one is cleared rather than left looking usable.
 	code_input.value = "";
 
 	if(await request_link(requested_email)){

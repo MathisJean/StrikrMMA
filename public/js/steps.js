@@ -1,13 +1,9 @@
 
-//Shared multi-step slider driver, used by the onboarding and claim flows. Both move through
-//real sequential steps, which is the job the retired login/signup swap used to do — same
-//track-and-transform technique, generalized from a binary swap to N steps.
+//Shared slider for the onboarding and claim flows: the retired login/signup swap, generalised to N steps.
 
 /**
- * Wires a `.step-track` up as an N-step slider.
- *
- * Advancing is gated on `on_leave`: returning false from it blocks the move, so a step's
- * required fields are enforced in the handler rather than only looking enforced.
+ * Wires a `.step-track` up as an N-step slider. Advancing is gated on `on_leave`: returning
+ * false blocks the move, so a step's required fields are enforced rather than decorative.
  * @param {HTMLElement} track - The `.step-track` element holding `.step-panel` children.
  * @param {object} [options]
  * @param {(from_step: number, to_step: number) => boolean} [options.on_leave] - Called before leaving a step; return false to block the move.
@@ -51,8 +47,7 @@ export function init_steps(track, { on_leave, on_enter } = {}){
 			const is_active = index === step - 1;
 
 			panel.classList.toggle("step-active", is_active);
-			//Hidden panels stay in the layout, so they have to be taken out of the tab order
-			//and off the accessibility tree explicitly.
+			//Hidden panels stay in the layout, so they leave the tab order and a11y tree explicitly.
 			panel.inert = !is_active;
 			panel.setAttribute("aria-hidden", String(!is_active));
 		});
@@ -63,8 +58,7 @@ export function init_steps(track, { on_leave, on_enter } = {}){
 
 		resize_viewport();
 
-		//Focus the first real control on the new step so keyboard and screen-reader users
-		//land inside it rather than back at the top of the document.
+		//Focus the first control so keyboard and screen-reader users land inside the new step.
 		panels[step - 1]?.querySelector("input, select, textarea, button")?.focus({ preventScroll: true });
 
 		on_enter?.(step);
@@ -76,8 +70,7 @@ export function init_steps(track, { on_leave, on_enter } = {}){
 		button.addEventListener("click", () => go_to(Number(button.dataset.targetStep)));
 	});
 
-	//A panel's height changes as validation messages appear or a field wraps, and the
-	//viewport is a fixed pixel height, so it has to be re-measured rather than set once.
+	//Panel height changes as messages appear, and the viewport is fixed px, so re-measure.
 	if(window.ResizeObserver){
 		const observer = new ResizeObserver(() => resize_viewport());
 		panels.forEach(panel => observer.observe(panel));

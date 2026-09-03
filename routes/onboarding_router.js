@@ -4,8 +4,7 @@ const { express, pool, errors, validation, require_login } = require("../libs/re
 const router = express.Router();
 
 //Setup Router
-//A user reaches onboarding with a session but no username, so every route here needs a
-//login and none of them can assume a profile exists yet.
+//A session but no username yet, so every route needs a login and none can assume a profile.
 
 /**
  * GET /onboarding
@@ -32,8 +31,7 @@ router.get("/", require_login("html"), async(req, res) => {
 		return res.redirect(`/u/${user.username}`);
 	}
 
-	//A claimed placeholder already has an admin-seeded name on file; prefilling it saves the
-	//athlete retyping what the profile already says about them.
+	//A claimed placeholder has an admin-seeded name; prefilling saves retyping it.
 	return res.render("onboarding", {
 		layout: "layout",
 		title: "Get Started",
@@ -48,17 +46,14 @@ router.get("/", require_login("html"), async(req, res) => {
 
 /**
  * POST /onboarding/complete
- * Writes everything collected across the flow's steps in a single transaction, creating the
- * profile and record rows if this account does not already have them (a claimed placeholder
- * does). Batched deliberately — a per-step save would leave a half-built account behind if
- * someone closed the tab mid-flow.
+ * Writes every step in one transaction, creating the profile and record rows if absent.
+ * Batched deliberately: a per-step save would strand a half-built account on a closed tab.
  * @param {import("express").Request} req - Express request object. Expects `username`, `corner`, `first_name`, `last_name`, and optionally `nickname`, `stance`, `hometown`, `team` in the body.
  * @param {import("express").Response} res - Express response object.
  * @returns {Promise<void>}
  */
 router.post("/complete", require_login("json"), async(req, res) => {
-	//The client checks all of this too, but that only saves the user a round trip —
-	//a request that skips the form must not skip the rules.
+	//The client checks this too, but only to save a round trip; skipping the form must not skip the rules.
 	const username = validation.validate_username(req.body.username);
 	const corner = validation.validate_corner(req.body.corner);
 	const first_name = validation.validate_name(req.body.first_name, "Given name");
@@ -80,8 +75,7 @@ router.post("/complete", require_login("json"), async(req, res) => {
 			throw errors.conflict("Username already registered");
 		}
 
-		//Guarded on onboarding_complete = false so a double-submitted final step cannot
-		//rewrite a finished account's username and corner.
+		//Guarded on onboarding_complete = false, so a double submit cannot rewrite a finished account.
 		const user_result = await client.query(
 			`UPDATE users SET username = $1, corner = $2, claimed = true, onboarding_complete = true
 			 WHERE id = $3 AND onboarding_complete = false
@@ -93,8 +87,7 @@ router.post("/complete", require_login("json"), async(req, res) => {
 			throw errors.conflict("This account has already been set up");
 		}
 
-		//A claimed placeholder arrives with a profile and record already seeded by an admin,
-		//so this both creates and updates rather than assuming either case.
+		//A claimed placeholder arrives already seeded, so this both creates and updates.
 		const profile_result = await client.query(
 			`INSERT INTO profiles (user_id, first_name, last_name, nickname, stance, hometown, team)
 			 VALUES ($1, $2, $3, $4, $5, $6, $7)
@@ -115,9 +108,7 @@ router.post("/complete", require_login("json"), async(req, res) => {
 			[profile_result.rows[0].id]
 		);
 	}).catch(err => {
-		//The username check above races against a concurrent signup; the unique index on
-		//lower(username) is what actually decides, so report its verdict as a conflict
-		//rather than letting it surface as an unexplained 500.
+		//The check above races a concurrent signup; the unique index decides, so report its verdict.
 		if(err.code === "23505"){
 			throw errors.conflict("That username is already registered");
 		}

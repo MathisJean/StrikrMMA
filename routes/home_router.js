@@ -15,6 +15,8 @@ const router = express.Router()
 router.get("/", (req, res) => {
 	res.render("home", {
 		title: "Home",
+		notice: typeof req.query.message === "string" ? req.query.message : null,
+		notice_error: typeof req.query.error === "string" ? req.query.error : null
 	});
 });
 

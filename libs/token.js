@@ -5,24 +5,31 @@ const { send_email } = require("./mailer");
 const crypto = require("node:crypto");
 const pool = require("./db");
 
-//A login link is meant to be used immediately after it is asked for, unlike a claim link
-//(deliberately long-lived, 30 days). Anything longer is a credential sitting in an inbox.
+//Short on purpose, unlike a 30-day claim link: any longer is a credential sitting in an inbox.
 const MAGIC_LINK_TTL = "15 minutes";
 
-//Wrong guesses allowed against one pending login before it has to be re-requested. The
-//per-IP limiter on /auth/verify-code slows an attacker down across accounts; this is what
-//caps them against a single one, since 6 digits is only a million possibilities.
+//Caps guesses against one pending login; the per-IP limiter is what caps them across accounts.
 const MAX_CODE_ATTEMPTS = 5;
 
 /**
- * Raised when a login cannot be completed because its address was registered to a different
- * account in the meantime. Distinguished from an ordinary invalid token so the caller can
- * say what actually went wrong instead of "expired".
+ * Raised when a login's address was registered to another account in the meantime, so the
+ * caller can say that rather than "expired".
  */
 class EmailTakenError extends Error{
 	constructor(){
 		super("That email is already registered to another account");
 		this.name = "EmailTakenError";
+	}
+}
+
+/**
+ * Raised when a claim login resolves to a profile someone else already claimed, so the link
+ * must not start a session on it.
+ */
+class ClaimSupersededError extends Error{
+	constructor(){
+		super("This profile has already been claimed. Log in with the email it was claimed with.");
+		this.name = "ClaimSupersededError";
 	}
 }
 
@@ -37,9 +44,8 @@ function hash_value(value){
 }
 
 /**
- * Creates a single-use auth token, storing only its hash, and optionally emails a
- * link built from the raw token. Shared by any feature needing a token-based email
- * flow (magic-link login, profile claiming, account deletion, ...).
+ * Creates a single-use auth token, storing only its hash, and optionally emails a link built
+ * from it. Shared by every token-based email flow.
  * @param {object} params
  * @param {string|null} [params.user_id=null] - Owning user's id, or null when the row does not exist yet (magic link for a new address).
  * @param {string} params.purpose - Token purpose (must match an allowed `auth_tokens.purpose` value).
@@ -85,16 +91,8 @@ async function create_and_send_token({ user_id = null, purpose, ttl_interval, bu
 }
 
 /**
- * Sends a login email carrying both a magic link and a 6-digit code, which are two ways to
- * complete the SAME login (one token row), not two separate mechanisms.
- *
- * The code exists for in-app browsers: a link clicked inside Instagram's webview can open in
- * the phone's default browser instead, leaving the tab the person started in looking logged
- * out. A code typed back into that original tab has no such gap.
- *
- * `user_id` is null for an ordinary signup/login — the users row is only created once the
- * link or code is actually consumed, so submitting an address cannot mint rows. The claim
- * flow passes the placeholder's id, since that row already exists and must be the one claimed.
+ * Emails a magic link and a 6-digit code: two ways to finish the SAME login, one token row.
+ * The code covers in-app browsers, which can open a link outside the tab that started it.
  * @param {object} params
  * @param {string} params.email - Address to send the login to.
  * @param {string|null} [params.user_id=null] - Existing user row this login must resolve to, if any.
@@ -102,6 +100,13 @@ async function create_and_send_token({ user_id = null, purpose, ttl_interval, bu
  * @returns {Promise<{ raw_token: string, raw_code: string|null, link: string }>}
  */
 async function send_magic_link({ email, user_id = null, client = pool }){
+	//Retires any pending login for this address, so a re-request leaves exactly one live link.
+	await client.query(
+		`UPDATE auth_tokens SET used = true
+		 WHERE LOWER(email) = LOWER($1) AND purpose = 'magic_link' AND used = false`,
+		[email]
+	);
+
 	return create_and_send_token({
 		user_id,
 		email,
@@ -135,11 +140,8 @@ async function send_magic_link({ email, user_id = null, client = pool }){
 }
 
 /**
- * Validates a 6-digit login code for an address and consumes the matching token.
- *
- * The attempt cap is checked BEFORE the code is matched: a wrong guess finds no row, so
- * checking afterwards would mean the counter is only ever read on a correct guess — the cap
- * would never actually stop anyone.
+ * Validates a 6-digit login code and consumes its token. The attempt is counted before the
+ * code is matched, or the cap would only ever advance on a correct guess.
  * @param {object} params
  * @param {string} params.email - Address the code was sent to.
  * @param {string} params.code - Code as typed by the user.
@@ -147,8 +149,7 @@ async function send_magic_link({ email, user_id = null, client = pool }){
  * @returns {Promise<{ row: object|null, locked_out: boolean }>} The consumed token row, or why there isn't one.
  */
 async function consume_magic_code({ email, code, client = pool }){
-	//Only the newest pending login for this address can be completed. An older one still
-	//inside its 15 minutes stays unusable, so re-requesting a code invalidates the last.
+	//send_magic_link retires the previous pending login, so at most one row can match here.
 	const pending = await client.query(
 		`SELECT id, user_id, email, code_hash, code_attempts FROM auth_tokens
 		 WHERE LOWER(email) = LOWER($1) AND purpose = 'magic_link'
@@ -161,19 +162,20 @@ async function consume_magic_code({ email, code, client = pool }){
 
 	if(!token_row) return { row: null, locked_out: false };
 
-	if(token_row.code_attempts >= MAX_CODE_ATTEMPTS) return { row: null, locked_out: true };
+	//Counted in the statement that reads it, so parallel guesses cannot all pass the same stale cap.
+	const attempt = await client.query(
+		`UPDATE auth_tokens SET code_attempts = code_attempts + 1
+		 WHERE id = $1 RETURNING code_attempts`,
+		[token_row.id]
+	);
+
+	if(attempt.rows[0].code_attempts > MAX_CODE_ATTEMPTS) return { row: null, locked_out: true };
 
 	if(!token_row.code_hash || token_row.code_hash !== hash_value(code)){
-		await client.query(
-			`UPDATE auth_tokens SET code_attempts = code_attempts + 1 WHERE id = $1`,
-			[token_row.id]
-		);
-
 		return { row: null, locked_out: false };
 	}
 
-	//Guarded on used = false rather than id alone: two tabs submitting the same correct
-	//code must not both come away believing they consumed it.
+	//Guarded on used = false, so two tabs with the same correct code cannot both consume it.
 	const consumed = await client.query(
 		`UPDATE auth_tokens SET used = true WHERE id = $1 AND used = false RETURNING *`,
 		[token_row.id]
@@ -183,38 +185,36 @@ async function consume_magic_code({ email, code, client = pool }){
 }
 
 /**
- * Resolves a consumed magic-link token into the account it logs into, creating that account
- * if this is the address's first successful login. Runs as one transaction so a half-created
- * user can never be left behind.
- *
- * Three cases, in order:
- *  1. The token carries a user_id (the claim flow) — that row is the account, and the
- *     address is written onto it if it had none.
- *  2. The address already has an account — that row is the account.
- *  3. Neither — a bare account is created, to be filled in by onboarding.
+ * Resolves a consumed token into an account, creating one on a first login. In order: a
+ * user_id means the claim flow, else a matching address, else a bare account for onboarding.
  * @param {object} token_row - Row returned by `verify_and_consume_token` or `consume_magic_code`.
  * @returns {Promise<{ user_id: string, is_admin: boolean, username: string|null, onboarding_complete: boolean }>}
  */
 async function resolve_magic_login(token_row){
 	return pool.with_transaction(async(client) => {
 		if(token_row.user_id){
-			//The claim flow leaves the address on the token rather than the row, so this is
-			//where a claimed profile finally gets its email. COALESCE so an account that
-			//already has one keeps it.
+			//Only the claim flow sets user_id, so a claimed row or a different address means someone else got here first.
 			const existing = await client.query(
-				`UPDATE users SET email = COALESCE(email, $1) WHERE id = $2
+				`UPDATE users SET email = COALESCE(email, $1)
+				 WHERE id = $2 AND claimed = false
+				 AND (email IS NULL OR LOWER(email) = LOWER($1))
 				 RETURNING id, is_admin, username, onboarding_complete`,
 				[token_row.email, token_row.user_id]
 			).catch(err => {
-				//Someone else registered that address between the email being sent and this
-				//link being clicked. The unique index on lower(email) is what settles it.
+				//The unique index on lower(email) settles a race with an ordinary signup.
 				if(err.code === "23505") throw new EmailTakenError();
 
 				throw err;
 			});
 
-			//The account was deleted between the email being sent and the link being clicked.
-			if(existing.rows.length === 0) return null;
+			if(existing.rows.length === 0){
+				const target = await client.query(`SELECT id FROM users WHERE id = $1`, [token_row.user_id]);
+
+				//The account was deleted between the email being sent and the link being clicked.
+				if(target.rows.length === 0) return null;
+
+				throw new ClaimSupersededError();
+			}
 
 			const user = existing.rows[0];
 
@@ -242,8 +242,7 @@ async function resolve_magic_login(token_row){
 			};
 		}
 
-		//A first login. Username, corner, profile and record all come from onboarding, so
-		//this row deliberately carries nothing but the proven address.
+		//A first login: everything else comes from onboarding, so this row carries only the proven address.
 		const created = await client.query(
 			`INSERT INTO users (email, claimed, onboarding_complete)
 			 VALUES ($1, true, false)
@@ -287,9 +286,8 @@ async function verify_and_consume_token({ raw_token, purpose, user_id, client = 
 }
 
 /**
- * Looks up a token by its raw value and purpose without marking it used.
- * Used for rendering a landing page (e.g. a claim link) where merely viewing
- * the page must not burn the token.
+ * Looks up a token without marking it used, for landing pages where merely viewing must not
+ * burn it.
  * @param {object} params
  * @param {string} params.raw_token - Raw token from the incoming request.
  * @param {string} params.purpose - Expected purpose.
@@ -309,10 +307,8 @@ async function peek_token({ raw_token, purpose, client = pool }){
 }
 
 /**
- * Deletes `auth_tokens` rows that are no longer useful: already consumed, or expired
- * more than 30 days ago (kept briefly past expiry in case recent activity needs
- * investigating). Nothing else in the codebase cleans this table up, so this must be
- * called on a recurring schedule (see server.js).
+ * Deletes consumed tokens and ones expired over 30 days ago. Nothing else cleans this table,
+ * so it must run on a schedule (see server.js).
  * @returns {Promise<number>} Number of rows deleted.
  */
 async function cleanup_expired_tokens(){
@@ -326,6 +322,7 @@ async function cleanup_expired_tokens(){
 //Export mailer functions
 module.exports = {
 	EmailTakenError,
+	ClaimSupersededError,
 	send_email,
 	create_and_send_token,
 	send_magic_link,

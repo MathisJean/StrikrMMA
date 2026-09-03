@@ -11,9 +11,7 @@ const MAX_NAME_LENGTH = 50;
 
 const CODE_REGEX = /^[0-9]{6}$/;
 
-//Caps for the free-text an athlete controls. The columns are unbounded varchar/text, so
-//without these a single field could carry an unbounded payload into every page that
-//renders it. Views escape their output, so this is about size, not markup.
+//The columns are unbounded varchar/text, so this caps size; views handle the markup.
 const MAX_TEXT_LENGTHS = {
 	nickname: 30,
 	stance: 20,
@@ -29,9 +27,7 @@ const MAX_TEXT_LENGTHS = {
 
 const CORNERS = ["red", "blue"];
 
-//Names that would collide with a route or read as official. Kept in sync with the
-//copies in public/js/auth.js and public/js/claim.js, which only pre-empt the error
-//for the user — this list is the one that actually enforces it.
+//Names that collide with a route or read as official; field_checks.js mirrors this to pre-empt.
 const RESERVED_USERNAMES = new Set([
 	"admin", "api", "athletes", "auth", "claim", "error", "explore", "false", "home",
 	"null", "profile", "report", "settings", "strikr", "support", "system", "true",

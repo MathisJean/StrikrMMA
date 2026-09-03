@@ -8,9 +8,8 @@ const router = express.Router();
 
 /**
  * GET /account/confirm-deletion
- * Completes an account deletion from the emailed confirmation link: consumes the token,
- * deletes the account (cascading through profiles/records/auth_tokens), destroys the
- * session, and cleans up the associated Cloudinary media.
+ * Completes a deletion from the emailed link: consumes the token, deletes the account and
+ * its cascades, destroys the session, and cleans up the Cloudinary media.
  * @param {import("express").Request} req - Express request object. Expects `token` in the query string.
  * @param {import("express").Response} res - Express response object.
  * @returns {Promise<void>}
@@ -22,8 +21,7 @@ router.get("/confirm-deletion", require_login("html"), async(req, res) => {
 		return res.redirect("/home?error=invalid_deletion_token");
 	}
 
-	//Scoped to the caller's own id: a deletion token is only ever valid for the session it
-	//was issued to, so a link forwarded to someone else's browser deletes nothing.
+	//Scoped to the caller's id, so a forwarded link deletes nothing in someone else's browser.
 	const token_row = await mailer.verify_and_consume_token({
 		raw_token: token,
 		purpose: "account_deletion",
@@ -34,16 +32,14 @@ router.get("/confirm-deletion", require_login("html"), async(req, res) => {
 		return res.redirect("/home?error=invalid_deletion_token");
 	}
 
-	//The URLs are collected inside the transaction but deleted only after it commits —
-	//destroying the media first would leave live rows pointing at dead assets on a rollback.
+	//Collected inside the transaction, deleted after it commits, or a rollback strands the row.
 	const media_urls = await pool.with_transaction(async(client) => {
 		const profile = await client.query(
 			`SELECT id, profile_picture_url, profile_banner_url FROM profiles WHERE user_id = $1`,
 			[req.session.user_id]
 		);
 
-		//TODO: Collect highlight video_urls here too once the highlights feature ships. The
-		//table does not currently exist, and querying it made every account deletion fail.
+		//TODO: Collect highlight video_urls here once that feature ships; the table does not exist yet.
 		await client.query(`DELETE FROM users WHERE id = $1`, [req.session.user_id]);
 
 		return profile.rows.flatMap(p => [p.profile_picture_url, p.profile_banner_url]).filter(Boolean);

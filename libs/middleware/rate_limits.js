@@ -5,72 +5,72 @@ const rateLimit = require("express-rate-limit");
 const FIFTEEN_MINUTES = 15 * 60 * 1000;
 const ONE_HOUR = 60 * 60 * 1000;
 
-//Shared shape: JSON body (every limited endpoint is called by fetch), standard RateLimit
-//headers, and no legacy X-RateLimit-* duplicates.
+//JSON body (every limited endpoint is called by fetch) and standard RateLimit headers only.
 const BASE_OPTIONS = {
 	standardHeaders: "draft-7",
 	legacyHeaders: false
 };
 
 /**
- * Builds a limiter that keys on the client IP. `keyGenerator` is deliberately left at the
- * default — a hand-rolled `req => req.ip` skips the library's IPv6 subnet normalisation,
- * which lets one client rotate through an address block for free.
+ * Builds a limiter keyed on the client IP. `keyGenerator` is left at the default on purpose —
+ * a hand-rolled `req => req.ip` skips the library's IPv6 subnet normalisation.
  * @param {object} params
  * @param {number} params.window_ms - Window length in milliseconds.
- * @param {number} params.max - Requests allowed per window.
+ * @param {number} params.limit - Requests allowed per window.
  * @param {string} params.message - Error message returned once the limit is hit.
  * @returns {import("express").RequestHandler}
  */
-function ip_limiter({ window_ms, max, message }){
+function ip_limiter({ window_ms, limit, message }){
 	return rateLimit({
 		...BASE_OPTIONS,
 		windowMs: window_ms,
-		max,
+		limit,
 		message: { error: message }
 	});
 }
 
-//Requesting a login link sends an email to whatever address is submitted, which makes an
-//unlimited endpoint a tool for flooding a third party's inbox. This is not polish — it
-//ships with the endpoint itself.
+//An unlimited request-link endpoint is a tool for flooding a third party's inbox.
 const request_link_ip_limit = ip_limiter({
 	window_ms: FIFTEEN_MINUTES,
-	max: 5,
+	limit: 5,
 	message: "Too many requests. Please try again later."
 });
 
-//Second, stricter limit keyed on the submitted address rather than the caller. A determined
-//abuser can rotate IPs cheaply; they cannot rotate the inbox they are trying to bury.
+//Stricter second limit on the submitted address: IPs rotate cheaply, the target inbox does not.
 const request_link_email_limit = rateLimit({
 	...BASE_OPTIONS,
 	windowMs: FIFTEEN_MINUTES,
-	max: 3,
-	//Not an IP key, so the library's IPv6 handling does not apply. An unparseable body
-	//falls back to a single shared bucket rather than skipping the limit entirely.
+	limit: 3,
+	//Not an IP key, so an unparseable body falls back to one shared bucket rather than skipping the limit.
 	keyGenerator: (req) => (typeof req.body?.email === "string" ? req.body.email.trim().toLowerCase() : "invalid"),
 	message: { error: "Too many login links requested for that address. Please try again later." }
 });
 
-//6 digits is a million possibilities, which is guessable without a limit. Set high enough
-//to tolerate typos, low enough that brute force is hopeless alongside the per-token cap.
+//High enough for typos, low enough that guessing 6 digits is hopeless beside the per-token cap.
 const verify_code_limit = ip_limiter({
 	window_ms: FIFTEEN_MINUTES,
-	max: 8,
+	limit: 8,
 	message: "Too many attempts. Please try again later."
 });
 
-//Deletion confirmations email the account's own address, so this is about stopping a
-//hijacked session from burying its owner in mail, not about protecting a stranger.
+//Deletion mail goes to the account's own address, so this stops a hijacked session flooding it.
 const deletion_request_limit = ip_limiter({
 	window_ms: ONE_HOUR,
-	max: 3,
+	limit: 3,
 	message: "Too many deletion requests. Please try again later."
+});
+
+//Sized to slow scraping while clearing normal search use; a shared NAT counts as one client.
+const public_read_limit = ip_limiter({
+	window_ms: FIFTEEN_MINUTES,
+	limit: 300,
+	message: "Too many requests. Please slow down."
 });
 
 module.exports = {
 	request_link_ip_limit,
 	request_link_email_limit,
 	verify_code_limit,
-	deletion_request_limit
+	deletion_request_limit,
+	public_read_limit
 };

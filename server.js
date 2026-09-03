@@ -5,9 +5,7 @@ const { http, os, path, express, expressLayouts, pool, session, PgStore, user_se
 const { not_found_handler, error_handler } = require('./libs/middleware/error_handler');
 const app = express();
 
-//Sessions are the only thing standing between a cookie and someone's account. A default
-//secret would sign them with a value anyone reading this repository already knows, so
-//refusing to start is the only safe response to a missing one.
+//A default secret would sign sessions with a value anyone reading this repo already knows.
 if(!process.env.SESSION_SECRET){
 	throw new Error("SESSION_SECRET environment variable is required — refusing to start with an insecure default.");
 }
@@ -33,17 +31,14 @@ function get_lan_address(){
 
 const lan_address = get_lan_address();
 
-//Behind Caddy every request arrives from the proxy, so without this req.ip is the proxy's
-//address for everybody and the rate limiters share one bucket across all users. Only in
-//production — trusting a forwarded header locally would let anyone spoof their own IP.
+//Production only: behind a proxy req.ip is the proxy for everyone, collapsing the limiters.
 if(process.env.NODE_ENV === "production"){
 	app.set("trust proxy", 1);
 }
 
 app.use(express.urlencoded({ limit: "10mb", extended: true }));
 
-//__dirname-relative, not cwd-relative: starting the server from any other directory
-//used to serve no static files and find no views.
+//__dirname-relative, or starting from another directory finds no static files and no views.
 app.use(express.static(path.join(__dirname, 'public')));
 app.set("views", path.join(__dirname, "views"));
 app.use(expressLayouts);
@@ -59,9 +54,7 @@ app.use(session({
 		httpOnly: true,
 		secure: process.env.NODE_ENV === "production",
 		sameSite: "lax",
-		//30 days. Athletes log in a few times a year, so a short session would mean a
-		//magic-link round trip almost every visit. `secure` above only means anything once
-		//HTTPS is actually live in front of this — that is what this length leans on.
+		//30 days: athletes log in rarely, so shorter means a magic-link round trip most visits.
 		maxAge: 1000 * 60 * 60 * 24 * 30
 	}
 }));
@@ -71,8 +64,7 @@ const BASE_URL = process.env.APP_BASE_URL || `http://localhost:${port}`;
 app.use((req, res, next) => {
 	res.locals.title = "The link in bio for fighters"; // default title for all pages
 
-	//Social-preview defaults. Pages that describe something specific (an athlete profile)
-	//can override these in their own view.
+	//Social-preview defaults; a page describing something specific overrides them in its view.
 	res.locals.base_url = BASE_URL;
 	res.locals.canonical_url = `${BASE_URL}${req.originalUrl.split("?")[0]}`;
 	res.locals.og_image = `${BASE_URL}/logo/strikr_logo_no_margin.png`;
@@ -87,9 +79,7 @@ app.get('/', (req, res) => res.redirect(301, '/home'));
 app.use(express.json());
 app.set("view engine", "ejs");
 
-//Runs after user_session, which is what puts onboarding_complete on res.locals.user. An
-//account created by a magic link has no username, corner, profile or record until it
-//finishes onboarding, so every other page would be reading fields that do not exist yet.
+//After user_session, which supplies the onboarding_complete this reads.
 app.use(require_onboarding);
 
 //----Routers----//
@@ -170,8 +160,7 @@ setInterval(() => {
 
 const http_server = http.createServer(app);
 
-//Start up server. Binding every interface rather than only the LAN address keeps
-//http://localhost working alongside access from other devices on the network.
+//Binds every interface, so localhost keeps working alongside access from other devices.
 http_server.listen(port, () => {
 	logger.info(`Server running at http://localhost:${port} (LAN: http://${lan_address}:${port}) close it with CTRL + C`);
 });

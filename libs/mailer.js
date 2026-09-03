@@ -14,9 +14,8 @@ const mail_transporter = nodemailer.createTransport({
 });
 
 /**
- * Sends a transactional email through the shared Resend SMTP transporter.
- * This is the only function in the codebase that touches nodemailer directly —
- * swapping providers later means editing this function only.
+ * Sends a transactional email through the shared Resend SMTP transporter. The only function
+ * that touches nodemailer, so swapping providers means editing this one.
  * @param {object} params
  * @param {string} params.to - Recipient email address.
  * @param {string} params.subject - Email subject line.

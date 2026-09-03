@@ -4,8 +4,7 @@ const profile_btn = document.getElementById("profile-btn");
 const MAX_UPLOAD_BYTES = 5 * 1024 * 1024; //keep in sync with the multer limit in routes/api_router.js
 const ACCEPTED_IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp", "image/heic", "image/heif"];
 
-//FilePond keeps a picked file at origin INPUT even after it has been saved, so ids of files
-//already persisted are tracked here to stop the next save re-uploading the same image.
+//FilePond keeps a saved file at origin INPUT, so saved ids are tracked to stop a re-upload.
 const saved_file_ids = new Set();
 
 //Server-side group keys mapped to what a failure should read as in the toast.
@@ -30,8 +29,7 @@ document.addEventListener("DOMContentLoaded", () => {
 		update_counter(tag, counters[index]);
 	});
 
-	//This is the only place ponds are created — the settings view must not create its own,
-	//or the same input ends up with two of them and only one carries these options.
+	//The only place ponds are created; a second create leaves one input with two, one unconfigured.
 	FilePond.registerPlugin(
 		FilePondPluginFileValidateType,
 		FilePondPluginImagePreview
@@ -189,9 +187,7 @@ function get_form_data(){
 			if(pond && pond.getFiles().length > 0){
 				const file_item = pond.getFiles()[0];
 
-				//Only a file the user actually picked, and hasn't already been saved, counts as
-				//a new upload. The pre-loaded existing image is also a real File once FilePond
-				//fetches it, so testing `instanceof File` re-uploaded it on every single save.
+				//Only a freshly picked file is an upload; `instanceof File` re-uploaded the existing one.
 				if(file_item.origin === FilePond.FileOrigin.INPUT && !saved_file_ids.has(file_item.id)){
 					form_data.append(field, file_item.file);
 					payload[group][field] = file_item.file.name;
@@ -269,9 +265,7 @@ profile_form.addEventListener("submit", async(event) => {
 			const failed_groups = data.failed_groups || [];
 			const failed_uploads = data.failed_uploads || [];
 
-			//Everything that saved is the new baseline, so the next diff only reports what
-			//actually changed after this point. `group` is a key, not the object it names —
-			//iterating it directly walked the characters of the string instead of the fields.
+			//What saved becomes the baseline. `group` is a key, so iterating it walks characters.
 			Object.keys(initial_state).forEach(group => {
 				if(!current_state[group]) return;
 				if(failed_groups.includes(group)) return;
@@ -288,9 +282,7 @@ profile_form.addEventListener("submit", async(event) => {
 				});
 			});
 
-			//Media is stored as a URL but submitted as a filename, so the baseline takes the
-			//URL the server actually saved. The pond still holds the picked file, so its id
-			//is remembered too — otherwise the very next save would upload it a second time.
+			//Submitted as a filename, stored as a URL, so the baseline takes the saved URL.
 			Object.keys(media).forEach(field => {
 				initial_state.profiles[field] = media[field] ?? "";
 
@@ -344,9 +336,7 @@ cancel_delete_btn?.addEventListener("click", () => {
 	delete_account_dialog.close();
 });
 
-//Deleting no longer happens here. With no password there is nothing to re-type as a
-//confirmation step, so the account's own inbox is the confirmation instead — a stronger
-//check than a remembered string, since it proves current access to the email account.
+//Confirmed by email now: with no password there is nothing to re-type as a check.
 confirm_delete_btn?.addEventListener("click", async() => {
 	confirm_delete_btn.disabled = true;
 
@@ -392,8 +382,7 @@ logout_everywhere_btn?.addEventListener("click", async() => {
 			throw error;
 		}
 
-		//This device's session was deleted along with the rest, so there is nothing left
-		//here to stay on.
+		//This device's session went with the rest, so there is nothing left to stay on.
 		window.location.href = "/";
 	}
 	catch(err){

@@ -3,7 +3,6 @@ import { init_steps } from "/js/steps.js";
 import { attach_field_checks, USERNAME_REGEX, RESERVED_USERNAMES } from "/js/field_checks.js";
 
 const track = document.getElementById("onboarding-track");
-const summary = document.getElementById("onboarding-summary");
 const finish_btn = document.getElementById("finish-btn");
 const step2_next = document.getElementById("step2-next");
 
@@ -21,9 +20,8 @@ const team_input = document.getElementById("team-input");
 attach_field_checks({ username_input, username_status });
 
 /**
- * Reads everything collected across the flow's steps into one payload. Nothing is saved
- * per-step: the whole account is written by a single request at the end, so closing the tab
- * halfway through leaves no half-built profile behind.
+ * Reads every step into one payload. Nothing is saved per-step, so closing the tab halfway
+ * leaves no half-built profile behind.
  * @returns {object} The onboarding payload.
  */
 function collect(){
@@ -40,9 +38,8 @@ function collect(){
 }
 
 /**
- * Checks the fields Step 2 requires, reporting the first problem. Mirrors
- * libs/validation.js — these checks only pre-empt the error for the user, the server is
- * what actually decides.
+ * Checks the fields Step 2 requires, reporting the first problem. Mirrors libs/validation.js,
+ * which is what actually decides.
  * @returns {boolean} Whether Step 2 may be left.
  */
 function validate_identity(){
@@ -83,24 +80,19 @@ function validate_identity(){
 
 const steps = init_steps(track, {
 	on_leave: (from_step, to_step) => {
-		//Only guard forward motion — going back to fix something must never be blocked by
-		//the very field the user is going back to fix.
+		//Forward only: going back to fix a field must not be blocked by that same field.
 		if(to_step < from_step) return true;
 
 		if(from_step === 2) return validate_identity();
 
 		return true;
-	},
-	on_enter: (step) => {
-		if(step === 4) render_summary();
 	}
 });
 
 step2_next.addEventListener("click", () => steps.next());
 
 finish_btn.addEventListener("click", async() => {
-	//Step 2's fields are the only required ones, and Step 3 is skippable straight past them,
-	//so they are re-checked here rather than trusted to have been validated on the way through.
+	//Step 3 is skippable, so Step 2's required fields are re-checked rather than trusted.
 	if(!validate_identity()){
 		steps.go_to(2);
 		return;

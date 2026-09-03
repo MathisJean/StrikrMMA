@@ -2,10 +2,8 @@
 const errors = require('../errors.js');
 
 /**
- * Middleware requiring an authenticated session with is_admin set. Answers a page request
- * with the rendered error page and a fetch with JSON, so an admin router serving both
- * doesn't hand a JSON caller an HTML body it can't parse. Reports "not found" rather than
- * "forbidden" so the admin surface isn't advertised to anyone who probes for it.
+ * Middleware requiring an admin session. Answers a page with HTML and a fetch with JSON, and
+ * reports "not found" rather than "forbidden" so the admin surface is not advertised.
  * @param {import("express").Request} req - Express request object.
  * @param {import("express").Response} res - Express response object.
  * @param {import("express").NextFunction} next - Express next function.
@@ -41,14 +39,17 @@ function require_login(format = "html"){
  */
 function require_guest(req, res, next){
 	if(req.session?.user_id){
-		//Onboarding is the one place a logged-in guest still belongs: they have a session but
-		//no username yet, so the profile redirect below has nowhere to send them.
+		//A fetch follows a redirect and reads the result as success, so a JSON caller is told plainly.
+		if(req.path.startsWith("/api") || req.method !== "GET"){
+			throw errors.forbidden("You are already logged in", "json");
+		}
+
+		//The one place a logged-in guest belongs: no username yet, so the redirect below has no target.
 		if(res.locals.user && !res.locals.user.onboarding_complete){
 			return res.redirect("/onboarding");
 		}
 
-		//A session can outlive the row it points at (deleted account, or a failed lookup in
-		//user_session), which leaves res.locals.user null — reading through it threw here.
+		//A session can outlive the row it points at, leaving res.locals.user null.
 		if(res.locals.user?.username){
 			return res.redirect(`/u/${res.locals.user.username}`);
 		}
@@ -58,15 +59,19 @@ function require_guest(req, res, next){
 	next();
 }
 
-//Paths a half-onboarded user must still reach: the flow itself, the auth routes that got
-//them here (and let them start over), and logging out. Everything else has no meaning for
-//an account with no username, corner, profile or record yet.
-const ONBOARDING_EXEMPT_PREFIXES = ["/onboarding", "/auth", "/api/logout", "/api/username-availability"];
+//Paths a half-onboarded user must still reach: the flow, auth, logout, and the deletion link.
+const ONBOARDING_EXEMPT_PREFIXES = [
+	"/onboarding",
+	"/auth",
+	"/api/logout",
+	"/api/username-availability",
+	"/api/request-deletion",
+	"/account/confirm-deletion"
+];
 
 /**
- * Middleware that pins a user who has not finished onboarding to the onboarding flow.
- * Without it, a session created by a magic link lands on pages that read a username, corner,
- * profile and record that do not exist yet.
+ * Pins a half-onboarded user to the onboarding flow, which otherwise lands on pages reading a
+ * username, corner, profile and record that do not exist yet.
  * @param {import("express").Request} req - Express request object.
  * @param {import("express").Response} res - Express response object.
  * @param {import("express").NextFunction} next - Express next function.

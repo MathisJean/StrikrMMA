@@ -2,9 +2,33 @@
 	<link rel="stylesheet" href="/css/home.css">
 </head>
 
-<!--
-	<script defer src="/js/home.js"></script>
--->
+<!-- Outcomes redirected here from /account, which has no page of its own to report them on -->
+<script defer>
+	document.addEventListener("DOMContentLoaded", () => {
+		const NOTICES = {
+			account_deleted: ["Account Deleted", "Your account and profile have been permanently removed."]
+		};
+
+		const ERRORS = {
+			invalid_deletion_token: ["Deletion Failed", "That confirmation link has expired or was already used."]
+		};
+
+		const notice = NOTICES[<%- JSON.stringify(locals.notice ?? "") %>];
+		const notice_error = ERRORS[<%- JSON.stringify(locals.notice_error ?? "") %>];
+
+		if(notice) show_error(notice[0], "", notice[1], false, false);
+		else if(notice_error) show_error(notice_error[0], "", notice_error[1], false);
+
+		if(!notice && !notice_error) return;
+
+		//Dropped so a refresh cannot replay the toast; anything else on the URL stays.
+		const url = new URL(window.location.href);
+		url.searchParams.delete("message");
+		url.searchParams.delete("error");
+
+		window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+	});
+</script>
 
 <!-- Content -->
 <section class="hero">
